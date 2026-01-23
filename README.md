@@ -28,7 +28,7 @@ pip install cjm_fasthtml_media_gallery
     ├── routes/ (1)
     │   └── handlers.ipynb  # Route handlers and router initialization for the media gallery.
     └── serving/ (1)
-        └── mounter.ipynb  # Directory mounting for static file serving in FastHTML applications.
+        └── mounter.ipynb  # Mounts directories as static files for serving through the web server.
 
 Total: 12 notebooks across 5 directories
 
@@ -49,31 +49,31 @@ graph LR
     routes_handlers[routes.handlers<br/>Handlers]
     serving_mounter[serving.mounter<br/>Mounter]
 
-    components_controls --> core_icons
     components_controls --> core_config
+    components_controls --> core_icons
     components_gallery --> components_list_view
     components_gallery --> core_config
-    components_gallery --> components_grid_view
     components_gallery --> core_html_ids
+    components_gallery --> components_grid_view
     components_gallery --> components_preview
     components_gallery --> components_controls
-    components_grid_view --> core_icons
     components_grid_view --> core_config
     components_grid_view --> core_html_ids
+    components_grid_view --> core_icons
     components_list_view --> core_config
-    components_list_view --> core_icons
     components_list_view --> core_html_ids
-    components_preview --> core_icons
-    components_preview --> core_config
+    components_list_view --> core_icons
     components_preview --> components_players
+    components_preview --> core_config
     components_preview --> core_html_ids
-    patterns_pagination --> core_icons
+    components_preview --> core_icons
     patterns_pagination --> core_config
     patterns_pagination --> core_html_ids
+    patterns_pagination --> core_icons
     routes_handlers --> core_config
-    routes_handlers --> components_gallery
-    routes_handlers --> serving_mounter
     routes_handlers --> components_preview
+    routes_handlers --> serving_mounter
+    routes_handlers --> components_gallery
 ```
 
 *25 cross-module dependencies detected*
@@ -769,107 +769,111 @@ COLUMN_LABELS: dict[ListColumn, str]
 
 ### Mounter (`mounter.ipynb`)
 
-> Directory mounting for static file serving in FastHTML applications.
+> Mounts directories as static files for serving through the web server.
 
 #### Import
 
 ``` python
 from cjm_fasthtml_media_gallery.serving.mounter import (
-    DirectoryMounter,
-    create_media_serve_route
+    DirectoryMounter
 )
 ```
 
 #### Functions
 
-```` python
-def create_media_serve_route(
-    mounter: DirectoryMounter,  # The mounter instance
-) -> callable:  # Route handler function
-    """
-    Create a route handler for serving media files.
-    
-    Usage:
-    ```python
-    from starlette.responses import FileResponse
-    
-    mounter = DirectoryMounter(prefix="media")
-    serve_media = create_media_serve_route(mounter)
-    
-    @app.get("/media/{mount_id}/{path:path}")
-    def media_route(mount_id: str, path: str):
-        return serve_media(mount_id, path)
-    ```
-    """
-````
+``` python
+@patch
+def mount(
+    self: DirectoryMounter,
+    app,  # FastHTML/Starlette application instance
+    directories: List[str]  # List of directory paths to mount
+) -> None
+    "Mount directories to app for static file serving."
+```
+
+``` python
+@patch
+def get_url(
+    self: DirectoryMounter,
+    file_path: str  # Full path to the file
+) -> Optional[str]:  # URL to access the file, or None if not in a mounted directory
+    "Get URL for a file based on mounted directories."
+```
+
+``` python
+@patch
+def is_mounted(
+    self: DirectoryMounter,
+    directory: str  # Directory path to check
+) -> bool:  # True if the directory is mounted
+    "Check if a directory is currently mounted."
+```
+
+``` python
+@patch
+def get_mounted_directories(
+    self: DirectoryMounter
+) -> List[str]:  # List of mounted directory paths
+    "Get list of currently mounted directories."
+```
+
+``` python
+@patch
+def unmount_all(
+    self: DirectoryMounter
+) -> None
+    "Remove all mounts from this instance."
+```
+
+``` python
+@patch
+def _mount_directory(
+    self: DirectoryMounter, 
+    app,  # FastHTML/Starlette application instance
+    directory: str  # Directory path to mount
+) -> None
+    "Mount a single directory."
+```
+
+``` python
+@patch
+def _generate_prefix(
+    self: DirectoryMounter, 
+    directory: str  # Directory path
+) -> str:  # Route prefix string (e.g., "mg_static_abc12345")
+    "Generate a unique route prefix for a directory using MD5 hash."
+```
+
+``` python
+@patch
+def _remove_existing_mounts(
+    self: DirectoryMounter, 
+    app  # FastHTML/Starlette application instance
+) -> None
+    "Remove existing mounts matching this mounter's prefix pattern."
+```
+
+``` python
+@patch
+def create_url_getter(
+    self: DirectoryMounter
+) -> callable:  # Function that converts path to URL
+    "Create a URL getter function for use with gallery components."
+```
 
 #### Classes
 
 ``` python
 class DirectoryMounter:
-    def __init__(
-        self,
-        prefix: str = "media",  # URL prefix for mounted files
-    )
-    "Mounts directories for static file serving."
+    def __init__(self):
+        """Initialize the mounter with empty state."""
+        self._mounted: Dict[str, str] = {}  # directory -> route_prefix
+    "Mounts directories for static file serving with instance-level state."
     
-    def __init__(
-            self,
-            prefix: str = "media",  # URL prefix for mounted files
-        )
-        "Initialize with URL prefix."
-    
-    def mount(
-            self,
-            directory: str  # Directory to mount
-        ) -> str:  # Mount ID
-        "Mount a directory and return its mount ID."
-    
-    def mount_directories(
-            self,
-            directories: List[str]  # Directories to mount
-        ) -> Dict[str, str]:  # Map of directory -> mount_id
-        "Mount multiple directories."
-    
-    def get_url(
-            self,
-            file_path: str  # Full file path
-        ) -> Optional[str]:  # URL or None if not in mounted directory
-        "Get URL for a file if it's in a mounted directory."
-    
-    def get_file_path(
-            self,
-            mount_id: str,  # Mount ID
-            relative_path: str  # Relative path within mount
-        ) -> Optional[str]:  # Full file path or None
-        "Get full file path from mount ID and relative path."
-    
-    def is_mounted(
-            self,
-            directory: str  # Directory to check
-        ) -> bool:  # True if mounted
-        "Check if a directory is mounted."
-    
-    def get_mounted_directories(
-            self
-        ) -> List[str]:  # List of mounted directory paths
-        "Get list of mounted directories."
-    
-    def unmount(
-            self,
-            directory: str  # Directory to unmount
-        ) -> bool:  # True if was mounted
-        "Unmount a directory."
-    
-    def unmount_all(
-            self
-        ) -> int:  # Number of mounts removed
-        "Remove all mounts."
-    
-    def create_url_getter(
-            self
-        ) -> callable:  # Function that converts path to URL
-        "Create a URL getter function for use with gallery components."
+    def __init__(self):
+            """Initialize the mounter with empty state."""
+            self._mounted: Dict[str, str] = {}  # directory -> route_prefix
+        "Initialize the mounter with empty state."
 ```
 
 ### Pagination (`pagination.ipynb`)
