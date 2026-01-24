@@ -49,30 +49,30 @@ graph LR
     routes_handlers[routes.handlers<br/>Handlers]
     serving_mounter[serving.mounter<br/>Mounter]
 
-    components_controls --> core_icons
     components_controls --> core_config
-    components_gallery --> components_preview
-    components_gallery --> patterns_pagination
-    components_gallery --> components_list_view
+    components_controls --> core_icons
     components_gallery --> core_config
-    components_gallery --> components_grid_view
     components_gallery --> components_controls
+    components_gallery --> components_list_view
+    components_gallery --> components_grid_view
+    components_gallery --> patterns_pagination
     components_gallery --> core_html_ids
-    components_grid_view --> core_icons
+    components_gallery --> components_preview
     components_grid_view --> core_config
+    components_grid_view --> core_icons
     components_grid_view --> core_html_ids
     components_list_view --> core_config
-    components_list_view --> core_icons
     components_list_view --> core_html_ids
-    components_preview --> core_icons
+    components_list_view --> core_icons
     components_preview --> core_config
-    components_preview --> core_html_ids
+    components_preview --> core_icons
     components_preview --> components_players
+    components_preview --> core_html_ids
     patterns_pagination --> core_icons
-    patterns_pagination --> core_config
     patterns_pagination --> core_html_ids
-    routes_handlers --> components_preview
+    patterns_pagination --> core_config
     routes_handlers --> core_config
+    routes_handlers --> components_preview
     routes_handlers --> serving_mounter
     routes_handlers --> components_gallery
 ```
@@ -510,8 +510,9 @@ def _handle_page(
 ``` python
 def _handle_preview(
     files_getter: Callable[[], List[FileInfo]], # Function to get files
-    mounter: DirectoryMounter,                # File URL mounter
+    state_getter: Callable[[], GalleryState],   # Function to get current state
     config: GalleryConfig,                    # Gallery configuration
+    mounter: DirectoryMounter,                # File URL mounter
     callbacks: Optional[GalleryCallbacks],    # Optional callbacks
     path: str,                                # File path to preview
     prev_url: str,                            # URL for previous handler
@@ -523,8 +524,9 @@ def _handle_preview(
 ``` python
 def _handle_preview_nav(
     files_getter: Callable[[], List[FileInfo]], # Function to get files
-    mounter: DirectoryMounter,                # File URL mounter
+    state_getter: Callable[[], GalleryState],   # Function to get current state
     config: GalleryConfig,                    # Gallery configuration
+    mounter: DirectoryMounter,                # File URL mounter
     callbacks: Optional[GalleryCallbacks],    # Optional callbacks
     current_path: str,                        # Current file path
     direction: int,                           # -1 for prev, +1 for next

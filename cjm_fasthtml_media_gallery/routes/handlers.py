@@ -156,15 +156,21 @@ def _handle_page(
 # %% ../../nbs/routes/handlers.ipynb #l2g3h4i5
 def _handle_preview(
     files_getter: Callable[[], List[FileInfo]], # Function to get files
-    mounter: DirectoryMounter,                # File URL mounter
+    state_getter: Callable[[], GalleryState],   # Function to get current state
     config: GalleryConfig,                    # Gallery configuration
+    mounter: DirectoryMounter,                # File URL mounter
     callbacks: Optional[GalleryCallbacks],    # Optional callbacks
     path: str,                                # File path to preview
     prev_url: str,                            # URL for previous handler
     next_url: str,                            # URL for next handler
 ) -> Any:  # Preview content
     """Handle preview request."""
-    files = files_getter()
+    state = state_getter()
+    all_files = files_getter()
+    
+    # Filter files by active types (same as gallery view)
+    active_types = state.active_types or config.filter.enabled_types
+    files = [f for f in all_files if f.file_type in active_types]
     
     # Find the file
     file_info = None
@@ -181,7 +187,7 @@ def _handle_preview(
     # Get file URL
     file_url = mounter.get_url(path) or path
     
-    # Determine prev/next
+    # Determine prev/next based on filtered list
     has_prev = file_index > 0
     has_next = file_index < len(files) - 1
     
@@ -203,8 +209,9 @@ def _handle_preview(
 # %% ../../nbs/routes/handlers.ipynb #m3h4i5j6
 def _handle_preview_nav(
     files_getter: Callable[[], List[FileInfo]], # Function to get files
-    mounter: DirectoryMounter,                # File URL mounter
+    state_getter: Callable[[], GalleryState],   # Function to get current state
     config: GalleryConfig,                    # Gallery configuration
+    mounter: DirectoryMounter,                # File URL mounter
     callbacks: Optional[GalleryCallbacks],    # Optional callbacks
     current_path: str,                        # Current file path
     direction: int,                           # -1 for prev, +1 for next
@@ -212,9 +219,14 @@ def _handle_preview_nav(
     next_url: str,                            # URL for next handler
 ) -> Any:  # Preview content
     """Handle preview navigation."""
-    files = files_getter()
+    state = state_getter()
+    all_files = files_getter()
     
-    # Find current index
+    # Filter files by active types (same as gallery view)
+    active_types = state.active_types or config.filter.enabled_types
+    files = [f for f in all_files if f.file_type in active_types]
+    
+    # Find current index in filtered list
     current_index = -1
     for i, f in enumerate(files):
         if f.path == current_path:
@@ -231,7 +243,7 @@ def _handle_preview_nav(
     
     new_file = files[new_index]
     return _handle_preview(
-        files_getter, mounter, config, callbacks,
+        files_getter, state_getter, config, mounter, callbacks,
         new_file.path, prev_url, next_url
     )
 
@@ -331,8 +343,9 @@ def init_router(
         """Open preview for a file."""
         return _handle_preview(
             files_getter=files_getter,
-            mounter=mounter,
+            state_getter=state_getter,
             config=config,
+            mounter=mounter,
             callbacks=callbacks,
             path=path,
             prev_url=preview_prev.to(),
@@ -344,8 +357,9 @@ def init_router(
         """Navigate to previous file in preview."""
         return _handle_preview_nav(
             files_getter=files_getter,
-            mounter=mounter,
+            state_getter=state_getter,
             config=config,
+            mounter=mounter,
             callbacks=callbacks,
             current_path=path,
             direction=-1,
@@ -358,8 +372,9 @@ def init_router(
         """Navigate to next file in preview."""
         return _handle_preview_nav(
             files_getter=files_getter,
-            mounter=mounter,
+            state_getter=state_getter,
             config=config,
+            mounter=mounter,
             callbacks=callbacks,
             current_path=path,
             direction=1,
