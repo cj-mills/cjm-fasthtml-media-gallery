@@ -49,32 +49,32 @@ graph LR
     routes_handlers[routes.handlers<br/>Handlers]
     serving_mounter[serving.mounter<br/>Mounter]
 
-    components_controls --> core_config
     components_controls --> core_icons
-    components_gallery --> patterns_pagination
-    components_gallery --> core_config
-    components_gallery --> components_list_view
-    components_gallery --> core_html_ids
-    components_gallery --> components_controls
-    components_gallery --> components_grid_view
+    components_controls --> core_config
     components_gallery --> components_preview
+    components_gallery --> core_config
+    components_gallery --> patterns_pagination
+    components_gallery --> components_list_view
+    components_gallery --> components_grid_view
+    components_gallery --> components_controls
+    components_gallery --> core_html_ids
     components_grid_view --> core_config
-    components_grid_view --> core_html_ids
     components_grid_view --> core_icons
+    components_grid_view --> core_html_ids
     components_list_view --> core_config
-    components_list_view --> core_html_ids
     components_list_view --> core_icons
-    components_preview --> components_players
-    components_preview --> core_html_ids
+    components_list_view --> core_html_ids
     components_preview --> core_config
     components_preview --> core_icons
-    patterns_pagination --> core_config
-    patterns_pagination --> core_html_ids
+    components_preview --> components_players
+    components_preview --> core_html_ids
     patterns_pagination --> core_icons
+    patterns_pagination --> core_html_ids
+    patterns_pagination --> core_config
     routes_handlers --> core_config
-    routes_handlers --> serving_mounter
-    routes_handlers --> components_preview
     routes_handlers --> components_gallery
+    routes_handlers --> components_preview
+    routes_handlers --> serving_mounter
 ```
 
 *26 cross-module dependencies detected*

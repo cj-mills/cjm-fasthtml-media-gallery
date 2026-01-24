@@ -13,12 +13,13 @@ from fasthtml.common import Div
 # Tailwind utilities
 from cjm_fasthtml_tailwind.utilities.sizing import w, h
 from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import flex_display, flex_direction, flex
-from cjm_fasthtml_tailwind.utilities.borders import rounded, border
+from cjm_fasthtml_tailwind.utilities.borders import border
 from cjm_fasthtml_tailwind.utilities.layout import overflow
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
 from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, border_dui
+from cjm_fasthtml_daisyui.utilities.border_radius import border_radius
 
 # Local imports
 from cjm_file_discovery.core.models import FileInfo, FileType
@@ -183,7 +184,7 @@ def render_media_gallery(
     container_cls = combine_classes(
         flex_display, flex_direction.col,
         w.full, h.full,
-        border(), border_dui.base_300, rounded.lg,
+        border(), border_dui.base_300, border_radius.box,
         overflow.hidden
     )
     

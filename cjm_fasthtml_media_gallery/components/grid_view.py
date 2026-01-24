@@ -26,6 +26,7 @@ from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
 from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui, border_dui
+from cjm_fasthtml_daisyui.utilities.border_radius import border_radius
 from cjm_fasthtml_daisyui.components.data_display.badge import badge
 
 # Local imports
@@ -74,13 +75,13 @@ def render_media_card(
     card_cls = combine_classes(
         "group relative",
         flex_display, flex_direction.col,
-        bg_dui.base_100, rounded.lg,
+        bg_dui.base_100, border_radius.box,
         border(),
         border_dui.primary if is_selected else border_dui.base_300,
         "hover:border-primary hover:shadow-md",
         "transition-all duration-200",
         cursor.pointer if (config.preview.enable_preview or can_select) else None,
-        "overflow-hidden"
+        overflow.hidden
     )
     
     item_id = GalleryHtmlIds.grid_item_id(index)

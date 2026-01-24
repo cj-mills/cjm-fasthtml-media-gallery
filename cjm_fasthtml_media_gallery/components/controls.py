@@ -16,6 +16,7 @@ from cjm_fasthtml_tailwind.utilities.spacing import p, m
 from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
     flex_display, items, justify, flex_wrap, gap
 )
+from cjm_fasthtml_tailwind.utilities.borders import rounded
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
@@ -189,7 +190,7 @@ def render_gallery_controls(
         flex_display, flex_wrap.wrap, items.center, justify.between,
         gap(4), p(4),
         bg_dui.base_200,
-        "rounded-t-lg"
+        rounded.t.lg
     )
     
     attrs = {"cls": container_cls}

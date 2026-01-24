@@ -16,13 +16,13 @@ from cjm_fasthtml_tailwind.utilities.spacing import p, m
 from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
     flex_display, flex_direction, items, justify
 )
-from cjm_fasthtml_tailwind.utilities.borders import rounded
 from cjm_fasthtml_tailwind.utilities.backgrounds import bg
 from cjm_fasthtml_tailwind.utilities.layout import object_fit
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
 from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui
+from cjm_fasthtml_daisyui.utilities.border_radius import border_radius
 
 # Local imports
 from cjm_file_discovery.core.models import FileInfo, FileType
@@ -41,7 +41,7 @@ def render_video_player(
     video_cls = combine_classes(
         max_w.full,
         max_h.full,
-        rounded.lg,
+        border_radius.box,
         cls
     )
     
@@ -152,7 +152,7 @@ def render_image_viewer(
         max_w.full,
         max_h.full,
         object_fit.contain,
-        rounded.lg,
+        border_radius.box,
         cls
     )
     
@@ -190,7 +190,7 @@ def render_document_preview(
             w.full,
             h.full,
             min_h(96),
-            rounded.lg,
+            border_radius.box,
             cls
         )
         return Iframe(
@@ -203,7 +203,7 @@ def render_document_preview(
     container_cls = combine_classes(
         flex_display, items.center, justify.center,
         w.full, h(64),
-        bg_dui.base_200, rounded.lg,
+        bg_dui.base_200, border_radius.box,
         text_dui.base_content,
         cls
     )
