@@ -17,6 +17,7 @@ from cjm_fasthtml_media_gallery.core.config import (
 )
 from ..components.gallery import render_media_gallery
 from ..components.preview import render_preview_content
+from ..components.players import is_text_previewable, read_text_content
 from ..serving.mounter import DirectoryMounter
 
 # %% ../../nbs/routes/handlers.ipynb #e5f6a7b8
@@ -155,14 +156,14 @@ def _handle_page(
 
 # %% ../../nbs/routes/handlers.ipynb #l2g3h4i5
 def _handle_preview(
-    files_getter: Callable[[], List[FileInfo]], # Function to get files
-    state_getter: Callable[[], GalleryState],   # Function to get current state
-    config: GalleryConfig,                    # Gallery configuration
-    mounter: DirectoryMounter,                # File URL mounter
-    callbacks: Optional[GalleryCallbacks],    # Optional callbacks
-    path: str,                                # File path to preview
-    prev_url: str,                            # URL for previous handler
-    next_url: str,                            # URL for next handler
+    files_getter: Callable[[], List[FileInfo]],  # Function to get files
+    state_getter: Callable[[], GalleryState],  # Function to get current state
+    config: GalleryConfig,  # Gallery configuration
+    mounter: DirectoryMounter,  # File URL mounter
+    callbacks: Optional[GalleryCallbacks],  # Optional callbacks
+    path: str,  # File path to preview
+    prev_url: str,  # URL for previous handler
+    next_url: str,  # URL for next handler
 ) -> Any:  # Preview content
     """Handle preview request."""
     state = state_getter()
@@ -191,6 +192,12 @@ def _handle_preview(
     has_prev = file_index > 0
     has_next = file_index < len(files) - 1
     
+    # Read text content if applicable
+    text_content = None
+    text_error = None
+    if is_text_previewable(file_info):
+        text_content, text_error = read_text_content(path)
+    
     # Call callback
     if callbacks and callbacks.on_preview:
         callbacks.on_preview(path)
@@ -203,7 +210,9 @@ def _handle_preview(
         next_url=next_url,
         has_prev=has_prev,
         has_next=has_next,
-        modal_id=config.preview_modal_id
+        modal_id=config.preview_modal_id,
+        text_content=text_content,
+        text_error=text_error,
     )
 
 # %% ../../nbs/routes/handlers.ipynb #m3h4i5j6

@@ -91,8 +91,9 @@ def main():
     print("  FastHTML app created successfully")
 
     # Default scan directory (home directory)
-    # home_path = str(Path.home())
-    home_path = "/mnt/SN850X_8TB/Media_Library/Images"
+    home_path = str(Path.home())
+    # home_path = "/mnt/SN850X_8TB/Media_Library/Videos"
+    # home_path = "/mnt/SN850X_8TB/Media_Library/Images"
 
     # Demo directories to scan - you can customize these
     demo_directories = [home_path]
@@ -114,7 +115,7 @@ def main():
         ),
         cache_results=True,
         cache_duration_seconds=300,
-        max_results=500,  # Limit results for demo
+        max_results=1000,  # Limit results for demo
         sort_by="modified",
         sort_descending=True,
     )

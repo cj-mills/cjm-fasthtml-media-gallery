@@ -49,35 +49,36 @@ graph LR
     routes_handlers[routes.handlers<br/>Handlers]
     serving_mounter[serving.mounter<br/>Mounter]
 
-    components_controls --> core_icons
     components_controls --> core_config
-    components_gallery --> components_grid_view
-    components_gallery --> patterns_pagination
-    components_gallery --> core_config
-    components_gallery --> components_preview
+    components_controls --> core_icons
     components_gallery --> components_list_view
+    components_gallery --> core_config
+    components_gallery --> patterns_pagination
     components_gallery --> components_controls
+    components_gallery --> components_grid_view
     components_gallery --> core_html_ids
-    components_grid_view --> core_icons
+    components_gallery --> components_preview
     components_grid_view --> core_config
     components_grid_view --> core_html_ids
+    components_grid_view --> core_icons
     components_list_view --> core_config
-    components_list_view --> core_icons
     components_list_view --> core_html_ids
-    components_preview --> core_icons
+    components_list_view --> core_icons
     components_preview --> core_config
-    components_preview --> components_players
     components_preview --> core_html_ids
+    components_preview --> core_icons
+    components_preview --> components_players
     patterns_pagination --> core_config
     patterns_pagination --> core_html_ids
     patterns_pagination --> core_icons
     routes_handlers --> components_preview
-    routes_handlers --> core_config
-    routes_handlers --> components_gallery
     routes_handlers --> serving_mounter
+    routes_handlers --> core_config
+    routes_handlers --> components_players
+    routes_handlers --> components_gallery
 ```
 
-*26 cross-module dependencies detected*
+*27 cross-module dependencies detected*
 
 ## CLI Reference
 
@@ -509,14 +510,14 @@ def _handle_page(
 
 ``` python
 def _handle_preview(
-    files_getter: Callable[[], List[FileInfo]], # Function to get files
-    state_getter: Callable[[], GalleryState],   # Function to get current state
-    config: GalleryConfig,                    # Gallery configuration
-    mounter: DirectoryMounter,                # File URL mounter
-    callbacks: Optional[GalleryCallbacks],    # Optional callbacks
-    path: str,                                # File path to preview
-    prev_url: str,                            # URL for previous handler
-    next_url: str,                            # URL for next handler
+    files_getter: Callable[[], List[FileInfo]],  # Function to get files
+    state_getter: Callable[[], GalleryState],  # Function to get current state
+    config: GalleryConfig,  # Gallery configuration
+    mounter: DirectoryMounter,  # File URL mounter
+    callbacks: Optional[GalleryCallbacks],  # Optional callbacks
+    path: str,  # File path to preview
+    prev_url: str,  # URL for previous handler
+    next_url: str,  # URL for next handler
 ) -> Any:  # Preview content
     "Handle preview request."
 ```
@@ -960,15 +961,34 @@ class PaginationInfo:
 
 ``` python
 from cjm_fasthtml_media_gallery.components.players import (
+    TEXT_PREVIEWABLE_EXTENSIONS,
+    is_text_previewable,
+    read_text_content,
     render_video_player,
     render_audio_player,
     render_image_viewer,
+    render_text_viewer,
     render_document_preview,
     render_media_player
 )
 ```
 
 #### Functions
+
+``` python
+def is_text_previewable(
+    file_info: FileInfo,  # File to check
+) -> bool:  # True if file can be previewed as text
+    "Check if a file can be previewed as text content."
+```
+
+``` python
+def read_text_content(
+    file_path: str,  # Path to the file
+    max_size: int = 10 * 1024 * 1024,  # Maximum file size in bytes (default 10MB)
+) -> Tuple[Optional[str], Optional[str]]:  # (content, error_message)
+    "Read text file content with encoding fallback."
+```
 
 ``` python
 def render_video_player(
@@ -1005,6 +1025,11 @@ def render_image_viewer(
 ```
 
 ``` python
+def render_text_viewer(
+    "Render a scrollable text viewer."
+```
+
+``` python
 def render_document_preview(
     file_url: str,                    # URL to the document file
     file_info: Optional[FileInfo] = None,  # File metadata
@@ -1015,12 +1040,20 @@ def render_document_preview(
 
 ``` python
 def render_media_player(
-    file_url: str,                    # URL to the media file
-    file_info: FileInfo,              # File metadata
-    autoplay: bool = False,           # Autoplay audio/video
-    cls: str = "",                    # Additional CSS classes
+    file_url: str,  # URL to the media file
+    file_info: FileInfo,  # File metadata
+    autoplay: bool = False,  # Autoplay audio/video
+    text_content: Optional[str] = None,  # Pre-read text content for text files
+    text_error: Optional[str] = None,  # Error message if text reading failed
+    cls: str = "",  # Additional CSS classes
 ) -> Any:  # Media player component
     "Render the appropriate media player based on file type."
+```
+
+#### Variables
+
+``` python
+TEXT_PREVIEWABLE_EXTENSIONS: Set[str]
 ```
 
 ### Preview (`preview.ipynb`)
@@ -1069,14 +1102,16 @@ def _render_preview_footer(
 
 ``` python
 def render_preview_content(
-    file_info: FileInfo,              # File to preview
-    file_url: str,                    # URL to the file
-    config: GalleryConfig,            # Gallery configuration
-    prev_url: Optional[str] = None,   # URL for previous file handler
-    next_url: Optional[str] = None,   # URL for next file handler
-    has_prev: bool = False,           # Whether there's a previous file
-    has_next: bool = False,           # Whether there's a next file
-    modal_id: Optional[str] = None,   # Modal ID to show (for auto-show script)
+    file_info: FileInfo,  # File to preview
+    file_url: str,  # URL to the file
+    config: GalleryConfig,  # Gallery configuration
+    prev_url: Optional[str] = None,  # URL for previous file handler
+    next_url: Optional[str] = None,  # URL for next file handler
+    has_prev: bool = False,  # Whether there's a previous file
+    has_next: bool = False,  # Whether there's a next file
+    modal_id: Optional[str] = None,  # Modal ID to show (for auto-show script)
+    text_content: Optional[str] = None,  # Pre-read text content for text files
+    text_error: Optional[str] = None,  # Error message if text reading failed
 ) -> Any:  # Preview modal content with auto-show script
     "Render the preview modal content with script to show the modal."
 ```

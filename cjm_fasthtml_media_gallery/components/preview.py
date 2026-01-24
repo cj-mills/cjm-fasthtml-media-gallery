@@ -214,14 +214,16 @@ def _render_preview_footer(
 
 # %% ../../nbs/components/preview.ipynb #k1f2g3h4
 def render_preview_content(
-    file_info: FileInfo,              # File to preview
-    file_url: str,                    # URL to the file
-    config: GalleryConfig,            # Gallery configuration
-    prev_url: Optional[str] = None,   # URL for previous file handler
-    next_url: Optional[str] = None,   # URL for next file handler
-    has_prev: bool = False,           # Whether there's a previous file
-    has_next: bool = False,           # Whether there's a next file
-    modal_id: Optional[str] = None,   # Modal ID to show (for auto-show script)
+    file_info: FileInfo,  # File to preview
+    file_url: str,  # URL to the file
+    config: GalleryConfig,  # Gallery configuration
+    prev_url: Optional[str] = None,  # URL for previous file handler
+    next_url: Optional[str] = None,  # URL for next file handler
+    has_prev: bool = False,  # Whether there's a previous file
+    has_next: bool = False,  # Whether there's a next file
+    modal_id: Optional[str] = None,  # Modal ID to show (for auto-show script)
+    text_content: Optional[str] = None,  # Pre-read text content for text files
+    text_error: Optional[str] = None,  # Error message if text reading failed
 ) -> Any:  # Preview modal content with auto-show script
     """Render the preview modal content with script to show the modal."""
     preview_config = config.preview
@@ -244,13 +246,19 @@ def render_preview_content(
     main_content = [
         # Media player
         Div(
-            render_media_player(file_url, file_info, autoplay=autoplay),
+            render_media_player(
+                file_url, file_info,
+                autoplay=autoplay,
+                text_content=text_content,
+                text_error=text_error
+            ),
             id=GalleryHtmlIds.PREVIEW_PLAYER,
             cls=combine_classes(
                 flex_display, items.center, justify.center,
                 grow(), min_h(0),  # min_h(0) allows flex child to shrink
                 p(4),
-                bg_dui.base_300
+                bg_dui.base_300,
+                overflow.auto  # Enable scrolling for text content with long lines
             )
         ),
     ]
