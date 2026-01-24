@@ -13,7 +13,7 @@ from fasthtml.common import (
 )
 
 # Tailwind utilities
-from cjm_fasthtml_tailwind.utilities.sizing import w, h, max_w, max_h, min_w
+from cjm_fasthtml_tailwind.utilities.sizing import w, h, max_w, max_h, min_w, min_h
 from cjm_fasthtml_tailwind.utilities.spacing import p, m
 from cjm_fasthtml_tailwind.utilities.typography import (
     font_size, font_weight, truncate, whitespace, break_all
@@ -21,7 +21,7 @@ from cjm_fasthtml_tailwind.utilities.typography import (
 from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
     flex_display, flex_direction, items, justify, grow, gap, shrink
 )
-from cjm_fasthtml_tailwind.utilities.layout import position, overflow
+from cjm_fasthtml_tailwind.utilities.layout import position, overflow, display_tw
 from cjm_fasthtml_tailwind.utilities.borders import border, divide
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
@@ -248,7 +248,7 @@ def render_preview_content(
             id=GalleryHtmlIds.PREVIEW_PLAYER,
             cls=combine_classes(
                 flex_display, items.center, justify.center,
-                grow(), p(4), "min-h-64",
+                grow(), p(4), min_h(64),
                 bg_dui.base_300
             )
         ),
@@ -279,7 +279,7 @@ def render_preview_content(
         id=GalleryHtmlIds.PREVIEW_CONTENT,
         cls=combine_classes(
             flex_display, flex_direction.col,
-            h.full, "max-h-screen"
+            h.full, max_h.screen
         )
     )
     
@@ -307,7 +307,7 @@ def render_preview_modal(
         ),
         # Backdrop for clicking outside to close
         Form(
-            Button("close", cls="hidden"),
+            Button("close", cls=display_tw.hidden),
             method="dialog",
             cls=str(modal_backdrop)
         ),

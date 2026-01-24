@@ -21,7 +21,7 @@ from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
 )
 from cjm_fasthtml_tailwind.utilities.borders import border, rounded
 from cjm_fasthtml_tailwind.utilities.interactivity import cursor
-from cjm_fasthtml_tailwind.utilities.layout import position, top, right, left, z
+from cjm_fasthtml_tailwind.utilities.layout import position, top, right, left, z, object_fit, overflow
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
@@ -140,7 +140,7 @@ def _render_thumbnail_area(
         flex_display, items.center, justify.center,
         w.full, size_config["thumbnail_height"],
         bg_dui.base_200,
-        "overflow-hidden"
+        overflow.hidden
     )
     
     # Show thumbnail for images if enabled and URL available
@@ -151,7 +151,7 @@ def _render_thumbnail_area(
             Img(
                 src=file_url,
                 alt=file_info.name,
-                cls=combine_classes(w.full, h.full, "object-cover"),
+                cls=combine_classes(w.full, h.full, object_fit.cover),
                 loading="lazy"
             ),
             cls=area_cls

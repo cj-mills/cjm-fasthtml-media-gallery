@@ -20,6 +20,7 @@ from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
     flex_display, flex_direction, items, justify, grow
 )
 from cjm_fasthtml_tailwind.utilities.interactivity import cursor
+from cjm_fasthtml_tailwind.utilities.layout import overflow
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
@@ -230,7 +231,7 @@ def render_list_view(
             cls=table_cls
         ),
         id=GalleryHtmlIds.LIST,
-        cls="overflow-x-auto"
+        cls=overflow.x.auto
     )
 
 # %% ../../nbs/components/list_view.ipynb #p6k7l8m9

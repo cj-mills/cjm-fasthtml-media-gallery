@@ -12,8 +12,9 @@ from fasthtml.common import Div
 
 # Tailwind utilities
 from cjm_fasthtml_tailwind.utilities.sizing import w, h
-from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import flex_display, flex_direction
+from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import flex_display, flex_direction, flex
 from cjm_fasthtml_tailwind.utilities.borders import rounded, border
+from cjm_fasthtml_tailwind.utilities.layout import overflow
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
@@ -153,7 +154,7 @@ def render_media_gallery(
         Div(
             content,
             id=config.content_id,
-            cls=combine_classes(bg_dui.base_100, "overflow-auto", "flex-1")
+            cls=combine_classes(bg_dui.base_100, overflow.auto, flex(1))
         )
     )
     
@@ -183,7 +184,7 @@ def render_media_gallery(
         flex_display, flex_direction.col,
         w.full, h.full,
         border(), border_dui.base_300, rounded.lg,
-        "overflow-hidden"
+        overflow.hidden
     )
     
     return Div(

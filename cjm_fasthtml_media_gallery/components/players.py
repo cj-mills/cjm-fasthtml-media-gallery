@@ -11,13 +11,14 @@ from typing import Any, Optional
 from fasthtml.common import Div, Img, Video, Audio, Iframe, P, Source
 
 # Tailwind utilities
-from cjm_fasthtml_tailwind.utilities.sizing import w, h, max_w, max_h
+from cjm_fasthtml_tailwind.utilities.sizing import w, h, max_w, max_h, min_h
 from cjm_fasthtml_tailwind.utilities.spacing import p, m
 from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
-    flex_display, items, justify
+    flex_display, flex_direction, items, justify
 )
 from cjm_fasthtml_tailwind.utilities.borders import rounded
 from cjm_fasthtml_tailwind.utilities.backgrounds import bg
+from cjm_fasthtml_tailwind.utilities.layout import object_fit
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
@@ -150,7 +151,7 @@ def render_image_viewer(
     img_cls = combine_classes(
         max_w.full,
         max_h.full,
-        "object-contain",
+        object_fit.contain,
         rounded.lg,
         cls
     )
@@ -188,7 +189,7 @@ def render_document_preview(
         iframe_cls = combine_classes(
             w.full,
             h.full,
-            "min-h-96",
+            min_h(96),
             rounded.lg,
             cls
         )
@@ -220,7 +221,7 @@ def render_document_preview(
                 f".{ext.upper()} file" if ext else "Document file",
                 cls=str(text_dui.base_content.opacity(60))
             ),
-            cls=combine_classes(flex_display, "flex-col", items.center)
+            cls=combine_classes(flex_display, flex_direction.col, items.center)
         ),
         cls=container_cls
     )
