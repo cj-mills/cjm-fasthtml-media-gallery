@@ -21,6 +21,7 @@ from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
 )
 from cjm_fasthtml_tailwind.utilities.borders import border, rounded
 from cjm_fasthtml_tailwind.utilities.interactivity import cursor
+from cjm_fasthtml_tailwind.utilities.layout import position, top, right, left, z
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
@@ -204,7 +205,7 @@ def _render_selection_indicator(
 ) -> Any:  # Selection indicator component
     """Render the selection indicator checkbox."""
     indicator_cls = combine_classes(
-        "absolute top-2 left-2 z-10",
+        position.absolute, top(2), left(2), z(10),
         w(6), h(6), rounded.full,
         flex_display, items.center, justify.center,
         bg_dui.primary if is_selected else bg_dui.base_100,
@@ -247,7 +248,7 @@ def _render_type_badge(
     return Span(
         type_label,
         cls=combine_classes(
-            "absolute top-2 right-2 z-10",
+            position.absolute, top(2), right(2),
             badge, badge_color,
             font_size.xs
         )

@@ -49,34 +49,35 @@ graph LR
     routes_handlers[routes.handlers<br/>Handlers]
     serving_mounter[serving.mounter<br/>Mounter]
 
-    components_controls --> core_config
     components_controls --> core_icons
+    components_controls --> core_config
+    components_gallery --> components_preview
+    components_gallery --> patterns_pagination
     components_gallery --> components_list_view
     components_gallery --> core_config
-    components_gallery --> core_html_ids
     components_gallery --> components_grid_view
-    components_gallery --> components_preview
     components_gallery --> components_controls
+    components_gallery --> core_html_ids
+    components_grid_view --> core_icons
     components_grid_view --> core_config
     components_grid_view --> core_html_ids
-    components_grid_view --> core_icons
     components_list_view --> core_config
-    components_list_view --> core_html_ids
     components_list_view --> core_icons
-    components_preview --> components_players
+    components_list_view --> core_html_ids
+    components_preview --> core_icons
     components_preview --> core_config
     components_preview --> core_html_ids
-    components_preview --> core_icons
+    components_preview --> components_players
+    patterns_pagination --> core_icons
     patterns_pagination --> core_config
     patterns_pagination --> core_html_ids
-    patterns_pagination --> core_icons
-    routes_handlers --> core_config
     routes_handlers --> components_preview
+    routes_handlers --> core_config
     routes_handlers --> serving_mounter
     routes_handlers --> components_gallery
 ```
 
-*25 cross-module dependencies detected*
+*26 cross-module dependencies detected*
 
 ## CLI Reference
 
@@ -345,25 +346,13 @@ def render_media_gallery(
     filter_url: Optional[str] = None,       # URL for type filter
     preview_url: Optional[str] = None,      # URL for preview action
     select_url: Optional[str] = None,       # URL for selection action
+    page_url: Optional[str] = None,         # URL for pagination
     # Pagination
     current_page: int = 1,                  # Current page number
     total_items: Optional[int] = None,      # Total items (for pagination)
     type_counts: Optional[dict[FileType, int]] = None,  # File counts per type
 ) -> Any:  # Complete gallery component
-    """
-    Render the complete media gallery.
-    
-    Component hierarchy:
-    render_media_gallery(files, config, ...)
-    ├── render_gallery_controls(config, view_mode, active_types, ...)
-    │   ├── render_view_toggle()
-    │   └── render_type_filters()
-    ├── render_gallery_content(files, config, view_mode, ...)
-    │   ├── render_grid_view() / render_list_view()
-    │   └── items[]
-    │       └── render_media_card() / render_list_row()
-    └── render_preview_modal()
-    """
+    "Render the complete media gallery."
 ```
 
 ### Grid View (`grid_view.ipynb`)
@@ -545,7 +534,7 @@ def _handle_preview_nav(
     "Handle preview navigation."
 ```
 
-```` python
+``` python
 def init_router(
     config: GalleryConfig,                              # Gallery configuration
     files_getter: Callable[[], List[FileInfo]],         # Function to get files
@@ -555,34 +544,8 @@ def init_router(
     route_prefix: str = "/gallery",                     # Route prefix for all gallery routes
     callbacks: Optional[GalleryCallbacks] = None,       # Optional callbacks
 ) -> APIRouter:  # Configured APIRouter with all gallery routes
-    """
-    Initialize and return an APIRouter with all gallery routes.
-    
-    Route paths are automatically derived from function names:
-    - toggle_view -> {prefix}/toggle_view
-    - filter_type -> {prefix}/filter_type
-    - select -> {prefix}/select
-    - page -> {prefix}/page
-    - preview -> {prefix}/preview
-    - preview_prev -> {prefix}/preview_prev
-    - preview_next -> {prefix}/preview_next
-    
-    Example:
-    ```python
-    from cjm_fasthtml_app_core.core.routing import register_routes
-    
-    router = init_router(
-        config=config,
-        files_getter=get_files,
-        mounter=mounter,
-        state_getter=get_state,
-        state_setter=set_state,
-        route_prefix="/gallery",
-    )
-    register_routes(app, router)
-    ```
-    """
-````
+    "Initialize and return an APIRouter with all gallery routes."
+```
 
 #### Classes
 
@@ -1093,6 +1056,7 @@ def _render_preview_footer(
     file_info: FileInfo,              # File being previewed
     file_url: str,                    # URL to the file
     config: PreviewConfig,            # Preview configuration
+    modal_id: str,                    # Modal ID for HTMX targeting
     prev_url: Optional[str] = None,   # URL for previous file
     next_url: Optional[str] = None,   # URL for next file
     has_prev: bool = False,           # Whether there's a previous file
@@ -1110,8 +1074,9 @@ def render_preview_content(
     next_url: Optional[str] = None,   # URL for next file handler
     has_prev: bool = False,           # Whether there's a previous file
     has_next: bool = False,           # Whether there's a next file
-) -> Any:  # Preview modal content
-    "Render the preview modal content."
+    modal_id: Optional[str] = None,   # Modal ID to show (for auto-show script)
+) -> Any:  # Preview modal content with auto-show script
+    "Render the preview modal content with script to show the modal."
 ```
 
 ``` python

@@ -31,6 +31,7 @@ from cjm_fasthtml_media_gallery.components.list_view import (
     render_list_view, render_list_empty_state
 )
 from .preview import render_preview_modal
+from ..patterns.pagination import render_pagination, PaginationInfo
 
 # %% ../../nbs/components/gallery.ipynb #e5f6a7b8
 def render_gallery_content(
@@ -88,25 +89,13 @@ def render_media_gallery(
     filter_url: Optional[str] = None,       # URL for type filter
     preview_url: Optional[str] = None,      # URL for preview action
     select_url: Optional[str] = None,       # URL for selection action
+    page_url: Optional[str] = None,         # URL for pagination
     # Pagination
     current_page: int = 1,                  # Current page number
     total_items: Optional[int] = None,      # Total items (for pagination)
     type_counts: Optional[dict[FileType, int]] = None,  # File counts per type
 ) -> Any:  # Complete gallery component
-    """
-    Render the complete media gallery.
-    
-    Component hierarchy:
-    render_media_gallery(files, config, ...)
-    ├── render_gallery_controls(config, view_mode, active_types, ...)
-    │   ├── render_view_toggle()
-    │   └── render_type_filters()
-    ├── render_gallery_content(files, config, view_mode, ...)
-    │   ├── render_grid_view() / render_list_view()
-    │   └── items[]
-    │       └── render_media_card() / render_list_row()
-    └── render_preview_modal()
-    """
+    """Render the complete media gallery."""
     # Defaults
     view_mode = view_mode or config.default_view
     active_types = active_types if active_types is not None else config.filter.enabled_types
@@ -122,7 +111,8 @@ def render_media_gallery(
         if f.file_type in active_types and config.filter.matches(f)
     ]
     
-    # Apply pagination
+    # Calculate pagination info
+    total_filtered = len(filtered_files)
     page_size = config.pagination.items_per_page
     start_idx = (current_page - 1) * page_size
     end_idx = start_idx + page_size
@@ -166,6 +156,21 @@ def render_media_gallery(
             cls=combine_classes(bg_dui.base_100, "overflow-auto", "flex-1")
         )
     )
+    
+    # Pagination controls
+    if config.pagination.show_pagination and page_url:
+        pagination_info = PaginationInfo(
+            total_items=total_filtered,
+            items_per_page=page_size,
+            current_page=current_page
+        )
+        pagination_component = render_pagination(
+            info=pagination_info,
+            page_url=page_url,
+            hx_target=gallery_target
+        )
+        if pagination_component:  # None if only 1 page
+            components.append(pagination_component)
     
     # Preview modal
     if config.preview.enable_preview:

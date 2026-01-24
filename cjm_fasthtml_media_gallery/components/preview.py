@@ -9,22 +9,26 @@ __all__ = ['render_preview_content', 'render_preview_modal']
 from typing import Any, Optional
 
 from fasthtml.common import (
-    Div, Span, Button, Dialog, Form, H3, A
+    Div, Span, Button, Dialog, Form, H3, A, Script
 )
 
 # Tailwind utilities
-from cjm_fasthtml_tailwind.utilities.sizing import w, h, max_w, max_h
+from cjm_fasthtml_tailwind.utilities.sizing import w, h, max_w, max_h, min_w
 from cjm_fasthtml_tailwind.utilities.spacing import p, m
-from cjm_fasthtml_tailwind.utilities.typography import font_size, font_weight, truncate
-from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
-    flex_display, flex_direction, items, justify, grow, gap
+from cjm_fasthtml_tailwind.utilities.typography import (
+    font_size, font_weight, truncate, whitespace, break_all
 )
-from cjm_fasthtml_tailwind.utilities.layout import position
-from cjm_fasthtml_tailwind.utilities.borders import rounded
+from cjm_fasthtml_tailwind.utilities.flexbox_and_grid import (
+    flex_display, flex_direction, items, justify, grow, gap, shrink
+)
+from cjm_fasthtml_tailwind.utilities.layout import position, overflow
+from cjm_fasthtml_tailwind.utilities.borders import border, divide
 from cjm_fasthtml_tailwind.core.base import combine_classes
 
 # DaisyUI utilities
-from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui
+from cjm_fasthtml_daisyui.utilities.semantic_colors import (
+    bg_dui, text_dui, border_dui, divide_dui
+)
 from cjm_fasthtml_daisyui.components.actions.button import (
     btn, btn_colors, btn_sizes, btn_modifiers, btn_styles
 )
@@ -56,7 +60,7 @@ def _render_preview_header(
                 cls=combine_classes(font_size.lg, font_weight.bold, truncate, m.l(3)),
                 title=file_info.name
             ),
-            cls=combine_classes(flex_display, items.center, grow(), "min-w-0")
+            cls=combine_classes(flex_display, items.center, grow(), min_w._0)
         ),
         # Close button
         Form(
@@ -71,7 +75,7 @@ def _render_preview_header(
         ),
         cls=combine_classes(
             flex_display, items.center, justify.between,
-            p(4), "border-b border-base-300"
+            p(4), bg_dui.base_100, border.b(), border_dui.base_300
         )
     )
 
@@ -87,23 +91,23 @@ def _render_info_panel(
         ("Modified", file_info.modified_str or "—"),
     ]
     
-    items = []
+    panel_items = []
     for label, value in info_items:
-        items.append(
+        panel_items.append(
             Div(
                 Span(label, cls=combine_classes(font_size.sm, text_dui.base_content.opacity(60))),
-                Span(value, cls=combine_classes(font_size.sm, font_weight.medium)),
-                cls=combine_classes(flex_display, justify.between, p.y(2))
+                Span(value, cls=combine_classes(font_size.sm, font_weight.medium, whitespace.nowrap)),
+                cls=combine_classes(flex_display, justify.between, gap(2), p.y(2))
             )
         )
     
-    # Path (full width)
-    items.append(
+    # Path (full width, can wrap)
+    panel_items.append(
         Div(
             Span("Path", cls=combine_classes(font_size.sm, text_dui.base_content.opacity(60))),
             Span(
                 file_info.path,
-                cls=combine_classes(font_size.xs, "break-all", text_dui.base_content.opacity(70)),
+                cls=combine_classes(font_size.xs, break_all, text_dui.base_content.opacity(70)),
                 title=file_info.path
             ),
             cls=combine_classes(flex_display, flex_direction.col, gap(1), p.y(2))
@@ -116,15 +120,15 @@ def _render_info_panel(
             cls=str(m.b(2))
         ),
         Div(
-            *items,
-            cls="divide-y divide-base-300"
+            *panel_items,
+            cls=combine_classes(divide.y(), divide_dui.base_300)
         ),
         id=GalleryHtmlIds.PREVIEW_INFO,
         cls=combine_classes(
-            w(64), p(4),
+            min_w(56), w(64), shrink(0), p(4),
             bg_dui.base_200,
-            "border-l border-base-300",
-            "overflow-y-auto"
+            border.l(), border_dui.base_300,
+            overflow.y.auto
         )
     )
 
@@ -133,6 +137,7 @@ def _render_preview_footer(
     file_info: FileInfo,              # File being previewed
     file_url: str,                    # URL to the file
     config: PreviewConfig,            # Preview configuration
+    modal_id: str,                    # Modal ID for HTMX targeting
     prev_url: Optional[str] = None,   # URL for previous file
     next_url: Optional[str] = None,   # URL for next file
     has_prev: bool = False,           # Whether there's a previous file
@@ -140,6 +145,9 @@ def _render_preview_footer(
 ) -> Any:  # Footer component
     """Render the preview modal footer."""
     buttons = []
+    
+    # Build hx_vals JSON with the current file path for navigation
+    path_vals = f'{{"path": "{file_info.path}"}}'
     
     # Navigation buttons
     if config.show_navigation:
@@ -150,6 +158,8 @@ def _render_preview_footer(
         }
         if has_prev and prev_url:
             prev_attrs["hx_post"] = prev_url
+            prev_attrs["hx_vals"] = path_vals
+            prev_attrs["hx_target"] = f"#{modal_id}"
             prev_attrs["hx_swap"] = "innerHTML"
         
         buttons.append(
@@ -167,6 +177,8 @@ def _render_preview_footer(
         }
         if has_next and next_url:
             next_attrs["hx_post"] = next_url
+            next_attrs["hx_vals"] = path_vals
+            next_attrs["hx_target"] = f"#{modal_id}"
             next_attrs["hx_swap"] = "innerHTML"
         
         buttons.append(
@@ -196,7 +208,7 @@ def _render_preview_footer(
         *buttons,
         cls=combine_classes(
             flex_display, items.center, gap(2),
-            p(4), "border-t border-base-300"
+            p(4), bg_dui.base_100, border.t(), border_dui.base_300
         )
     )
 
@@ -209,9 +221,11 @@ def render_preview_content(
     next_url: Optional[str] = None,   # URL for next file handler
     has_prev: bool = False,           # Whether there's a previous file
     has_next: bool = False,           # Whether there's a next file
-) -> Any:  # Preview modal content
-    """Render the preview modal content."""
+    modal_id: Optional[str] = None,   # Modal ID to show (for auto-show script)
+) -> Any:  # Preview modal content with auto-show script
+    """Render the preview modal content with script to show the modal."""
     preview_config = config.preview
+    modal_id = modal_id or config.preview_modal_id
     
     # Determine autoplay based on config and file type
     autoplay = False
@@ -247,19 +261,20 @@ def render_preview_content(
     content.append(
         Div(
             *main_content,
-            cls=combine_classes(flex_display, grow(), "overflow-hidden")
+            cls=combine_classes(flex_display, grow(), overflow.hidden)
         )
     )
     
     # Footer
     content.append(
         _render_preview_footer(
-            file_info, file_url, preview_config,
+            file_info, file_url, preview_config, modal_id,
             prev_url, next_url, has_prev, has_next
         )
     )
     
-    return Div(
+    # Main content div
+    content_div = Div(
         *content,
         id=GalleryHtmlIds.PREVIEW_CONTENT,
         cls=combine_classes(
@@ -267,6 +282,18 @@ def render_preview_content(
             h.full, "max-h-screen"
         )
     )
+    
+    # Script to show the modal after content loads
+    show_script = Script(f"""
+        (function() {{
+            const modal = document.getElementById('{modal_id}');
+            if (modal && typeof modal.showModal === 'function' && !modal.open) {{
+                requestAnimationFrame(() => modal.showModal());
+            }}
+        }})();
+    """)
+    
+    return Div(content_div, show_script)
 
 # %% ../../nbs/components/preview.ipynb #n4i5j6k7
 def render_preview_modal(

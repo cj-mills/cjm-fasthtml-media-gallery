@@ -196,7 +196,8 @@ def _handle_preview(
         prev_url=prev_url,
         next_url=next_url,
         has_prev=has_prev,
-        has_next=has_next
+        has_next=has_next,
+        modal_id=config.preview_modal_id
     )
 
 # %% ../../nbs/routes/handlers.ipynb #m3h4i5j6
@@ -244,33 +245,7 @@ def init_router(
     route_prefix: str = "/gallery",                     # Route prefix for all gallery routes
     callbacks: Optional[GalleryCallbacks] = None,       # Optional callbacks
 ) -> APIRouter:  # Configured APIRouter with all gallery routes
-    """
-    Initialize and return an APIRouter with all gallery routes.
-    
-    Route paths are automatically derived from function names:
-    - toggle_view -> {prefix}/toggle_view
-    - filter_type -> {prefix}/filter_type
-    - select -> {prefix}/select
-    - page -> {prefix}/page
-    - preview -> {prefix}/preview
-    - preview_prev -> {prefix}/preview_prev
-    - preview_next -> {prefix}/preview_next
-    
-    Example:
-    ```python
-    from cjm_fasthtml_app_core.core.routing import register_routes
-    
-    router = init_router(
-        config=config,
-        files_getter=get_files,
-        mounter=mounter,
-        state_getter=get_state,
-        state_setter=set_state,
-        route_prefix="/gallery",
-    )
-    register_routes(app, router)
-    ```
-    """
+    """Initialize and return an APIRouter with all gallery routes."""
     router = APIRouter(prefix=route_prefix)
     
     def _render_gallery(state: GalleryState) -> Any:
@@ -287,6 +262,7 @@ def init_router(
             filter_url=filter_type.to(),
             preview_url=preview.to(),
             select_url=select.to() if config.selection_mode != SelectionMode.NONE else None,
+            page_url=page.to(),
             current_page=state.current_page,
         )
     
