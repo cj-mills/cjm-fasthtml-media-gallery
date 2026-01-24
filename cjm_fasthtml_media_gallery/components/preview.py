@@ -248,7 +248,8 @@ def render_preview_content(
             id=GalleryHtmlIds.PREVIEW_PLAYER,
             cls=combine_classes(
                 flex_display, items.center, justify.center,
-                grow(), p(4), min_h(64),
+                grow(), min_h(0),  # min_h(0) allows flex child to shrink
+                p(4),
                 bg_dui.base_300
             )
         ),
@@ -261,7 +262,10 @@ def render_preview_content(
     content.append(
         Div(
             *main_content,
-            cls=combine_classes(flex_display, grow(), overflow.hidden)
+            cls=combine_classes(
+                flex_display, grow(), min_h(0),  # min_h(0) allows flex child to shrink
+                overflow.hidden
+            )
         )
     )
     
@@ -273,13 +277,13 @@ def render_preview_content(
         )
     )
     
-    # Main content div
+    # Main content div - fills the modal which has fixed dimensions
     content_div = Div(
         *content,
         id=GalleryHtmlIds.PREVIEW_CONTENT,
         cls=combine_classes(
             flex_display, flex_direction.col,
-            h.full, max_h.screen
+            h.screen, w.screen  # Fill available screen space
         )
     )
     
@@ -303,7 +307,12 @@ def render_preview_modal(
     return Dialog(
         Div(
             # Content will be loaded here via HTMX
-            cls=combine_classes(modal_box, w("11/12"), max_w._5xl, h("90vh"), p._0)
+            cls=combine_classes(
+                modal_box,
+                flex_display, flex_direction.col,  # Flex column for header/content/footer
+                overflow.hidden,  # Prevent content from overflowing modal
+                p._0
+            )
         ),
         # Backdrop for clicking outside to close
         Form(
