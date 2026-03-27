@@ -75,6 +75,8 @@ def main():
     print("=" * 70)
 
     # Create the FastHTML app
+    APP_ID = "mediagal"
+
     app, rt = fast_app(
         pico=False,
         hdrs=[
@@ -83,7 +85,8 @@ def main():
         ],
         title="Media Gallery Demo",
         htmlkw={'data-theme': 'light'},
-        secret_key="demo-secret-key"
+        session_cookie=f'session_{APP_ID}_',
+        secret_key=f'{APP_ID}-demo-secret',
     )
 
     router = APIRouter(prefix="")
