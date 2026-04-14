@@ -1,11 +1,30 @@
 [build-system]
-requires = ["setuptools>=64.0,<76.0"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name="cjm-fasthtml-media-gallery"
-requires-python=">=3.12"
-dynamic = [ "keywords", "description", "version", "dependencies", "optional-dependencies", "readme", "license", "authors", "classifiers", "entry-points", "scripts", "urls"]
+name = "cjm-fasthtml-media-gallery"
+dynamic = ["version"]
+description = "FastHTML UI components for displaying media file collections with type-specific previews, playback, and pagination."
+readme = "README.md"
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
+authors = [{name = "Christian J. Mills", email = "9126128+cj-mills@users.noreply.github.com"}]
+keywords = ['nbdev', 'jupyter', 'notebook', 'python']
+classifiers = ["Natural Language :: English", "Intended Audience :: Developers", "Development Status :: 3 - Alpha", "Programming Language :: Python :: 3", "Programming Language :: Python :: 3 :: Only"]
+dependencies = ['cjm_fasthtml_daisyui', 'cjm_fasthtml_lucide_icons', 'cjm_fasthtml_tailwind', 'cjm_file_discovery']
 
-[tool.uv]
-cache-keys = [{ file = "pyproject.toml" }, { file = "settings.ini" }, { file = "setup.py" }]
+[project.urls]
+Repository = "https://github.com/cj-mills/cjm-fasthtml-media-gallery"
+Documentation = "https://cj-mills.github.io/cjm-fasthtml-media-gallery"
+
+[project.entry-points.nbdev]
+cjm_fasthtml_media_gallery = "cjm_fasthtml_media_gallery._modidx:d"
+
+[tool.setuptools.dynamic]
+version = {attr = "cjm_fasthtml_media_gallery.__version__"}
+
+[tool.setuptools.packages.find]
+include = ["cjm_fasthtml_media_gallery"]
+
+[tool.nbdev]
