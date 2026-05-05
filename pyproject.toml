@@ -25,6 +25,6 @@ cjm_fasthtml_media_gallery = "cjm_fasthtml_media_gallery._modidx:d"
 version = {attr = "cjm_fasthtml_media_gallery.__version__"}
 
 [tool.setuptools.packages.find]
-include = ["cjm_fasthtml_media_gallery"]
+include = ["cjm_fasthtml_media_gallery*"]
 
 [tool.nbdev]
