@@ -36,6 +36,8 @@ from cjm_fasthtml_daisyui.components.actions.modal import (
     modal, modal_box, modal_action, modal_backdrop
 )
 
+from cjm_fasthtml_design_system.text_tiers import text_tiers
+
 # Local imports
 from cjm_file_discovery.core.models import FileInfo, FileType
 from ..core.config import GalleryConfig, PreviewConfig
@@ -95,7 +97,7 @@ def _render_info_panel(
     for label, value in info_items:
         panel_items.append(
             Div(
-                Span(label, cls=combine_classes(font_size.sm, text_dui.base_content.opacity(60))),
+                Span(label, cls=combine_classes(font_size.sm, text_tiers.tertiary)),
                 Span(value, cls=combine_classes(font_size.sm, font_weight.medium, whitespace.nowrap)),
                 cls=combine_classes(flex_display, justify.between, gap(2), p.y(2))
             )
@@ -104,10 +106,10 @@ def _render_info_panel(
     # Path (full width, can wrap)
     panel_items.append(
         Div(
-            Span("Path", cls=combine_classes(font_size.sm, text_dui.base_content.opacity(60))),
+            Span("Path", cls=combine_classes(font_size.sm, text_tiers.tertiary)),
             Span(
                 file_info.path,
-                cls=combine_classes(font_size.xs, break_all, text_dui.base_content.opacity(70)),
+                cls=combine_classes(font_size.xs, break_all, text_tiers.secondary),
                 title=file_info.path
             ),
             cls=combine_classes(flex_display, flex_direction.col, gap(1), p.y(2))

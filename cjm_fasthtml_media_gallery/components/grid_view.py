@@ -29,6 +29,8 @@ from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui, bor
 from cjm_fasthtml_daisyui.utilities.border_radius import border_radius
 from cjm_fasthtml_daisyui.components.data_display.badge import badge
 
+from cjm_fasthtml_design_system.text_tiers import text_tiers
+
 # Local imports
 from cjm_file_discovery.core.models import FileInfo, FileType
 from ..core.config import GalleryConfig, CardSize
@@ -191,7 +193,7 @@ def _render_info_area(
         size = Span(
             file_info.size_str,
             cls=combine_classes(
-                font_size.xs, text_dui.base_content.opacity(60)
+                font_size.xs, text_tiers.tertiary
             )
         )
     
@@ -308,11 +310,11 @@ def render_grid_empty_state(
     return Div(
         Div(
             get_media_type_icon(FileType.IMAGE, size=16, with_color=False),
-            cls=combine_classes(text_dui.base_content.opacity(30), m.b(4))
+            cls=combine_classes(text_tiers.subtle, m.b(4))
         ),
         Span(
             message,
-            cls=combine_classes(font_size.lg, text_dui.base_content.opacity(60))
+            cls=combine_classes(font_size.lg, text_tiers.tertiary)
         ),
         id=GalleryHtmlIds.GRID,
         cls=combine_classes(

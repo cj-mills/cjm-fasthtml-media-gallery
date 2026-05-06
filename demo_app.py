@@ -40,6 +40,8 @@ def main():
     from cjm_fasthtml_daisyui.components.data_display.card import card, card_body
     from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui
 
+    from cjm_fasthtml_design_system.text_tiers import text_tiers
+
     from cjm_fasthtml_tailwind.utilities.spacing import p, m
     from cjm_fasthtml_tailwind.utilities.sizing import container, max_w, w, h
     from cjm_fasthtml_tailwind.utilities.typography import font_size, font_weight, text_align
@@ -368,7 +370,7 @@ def main():
                 # Current scan info
                 Div(
                     P(f"Currently scanning: {current_scan_path['path']}",
-                      cls=combine_classes(font_size.sm, text_dui.base_content.opacity(70))),
+                      cls=combine_classes(font_size.sm, text_tiers.secondary)),
                     cls=m.t(8)
                 ),
 

@@ -28,6 +28,8 @@ from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui
 from cjm_fasthtml_daisyui.components.data_display.table import table, table_modifiers, table_sizes
 from cjm_fasthtml_daisyui.components.data_input.checkbox import checkbox, checkbox_colors, checkbox_sizes
 
+from cjm_fasthtml_design_system.text_tiers import text_tiers
+
 # Local imports
 from cjm_file_discovery.core.models import FileInfo, FileType
 from cjm_fasthtml_media_gallery.core.config import (
@@ -156,32 +158,32 @@ def _render_cell(
         type_label = file_info.file_type.value.title()
         return Td(
             type_label,
-            cls=combine_classes(text_nowrap, text_dui.base_content.opacity(70))
+            cls=combine_classes(text_nowrap, text_tiers.secondary)
         )
     
     elif column == ListColumn.SIZE:
         return Td(
             file_info.size_str or "—",
-            cls=combine_classes(text_nowrap, text_dui.base_content.opacity(70))
+            cls=combine_classes(text_nowrap, text_tiers.secondary)
         )
     
     elif column == ListColumn.MODIFIED:
         return Td(
             file_info.modified_str or "—",
-            cls=combine_classes(text_nowrap, text_dui.base_content.opacity(70))
+            cls=combine_classes(text_nowrap, text_tiers.secondary)
         )
     
     elif column == ListColumn.EXTENSION:
         ext = file_info.extension.upper() if file_info.extension else "—"
         return Td(
             ext,
-            cls=combine_classes(text_nowrap, text_dui.base_content.opacity(70))
+            cls=combine_classes(text_nowrap, text_tiers.secondary)
         )
     
     elif column == ListColumn.PATH:
         return Td(
             file_info.path,
-            cls=combine_classes(truncate, font_size.sm, text_dui.base_content.opacity(50)),
+            cls=combine_classes(truncate, font_size.sm, text_tiers.muted),
             title=file_info.path
         )
     
@@ -242,11 +244,11 @@ def render_list_empty_state(
     return Div(
         Div(
             get_media_type_icon(FileType.IMAGE, size=16, with_color=False),
-            cls=combine_classes(text_dui.base_content.opacity(30), m.b(4))
+            cls=combine_classes(text_tiers.subtle, m.b(4))
         ),
         Span(
             message,
-            cls=combine_classes(font_size.lg, text_dui.base_content.opacity(60))
+            cls=combine_classes(font_size.lg, text_tiers.tertiary)
         ),
         id=GalleryHtmlIds.LIST,
         cls=combine_classes(

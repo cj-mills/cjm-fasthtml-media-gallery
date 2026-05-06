@@ -27,6 +27,8 @@ from cjm_fasthtml_tailwind.core.base import combine_classes
 from cjm_fasthtml_daisyui.utilities.semantic_colors import bg_dui, text_dui
 from cjm_fasthtml_daisyui.utilities.border_radius import border_radius
 
+from cjm_fasthtml_design_system.text_tiers import text_tiers
+
 # Local imports
 from cjm_file_discovery.core.models import FileInfo, FileType
 
@@ -243,7 +245,7 @@ def render_text_viewer(
         return Div(
             Div(
                 P("Unable to preview file", cls=str(font_size.lg)),
-                P(error, cls=str(text_dui.base_content.opacity(60))),
+                P(error, cls=text_tiers.tertiary),
                 cls=combine_classes(flex_display, flex_direction.col, items.center)
             ),
             cls=container_cls
@@ -318,7 +320,7 @@ def render_document_preview(
             ),
             P(
                 f".{ext.upper()} file" if ext else "Document file",
-                cls=str(text_dui.base_content.opacity(60))
+                cls=text_tiers.tertiary
             ),
             cls=combine_classes(flex_display, flex_direction.col, items.center)
         ),

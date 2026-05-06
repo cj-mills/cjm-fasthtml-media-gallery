@@ -23,6 +23,8 @@ from cjm_fasthtml_daisyui.components.actions.button import (
 from cjm_fasthtml_daisyui.components.navigation.pagination import join, join_item
 from cjm_fasthtml_daisyui.utilities.semantic_colors import text_dui
 
+from cjm_fasthtml_design_system.text_tiers import text_tiers
+
 # Local imports
 from ..core.config import PaginationConfig
 from ..core.html_ids import GalleryHtmlIds
@@ -230,7 +232,7 @@ def render_pagination_info(
     if info.total_items == 0:
         return Span(
             "No items",
-            cls=str(text_dui.base_content.opacity(60))
+            cls=text_tiers.tertiary
         )
     
     start = info.start_index + 1
@@ -239,5 +241,5 @@ def render_pagination_info(
     
     return Span(
         f"Showing {start}-{end} of {total} items",
-        cls=str(text_dui.base_content.opacity(60))
+        cls=text_tiers.tertiary
     )
