@@ -9,7 +9,7 @@ __all__ = ['GalleryState', 'init_router']
 from dataclasses import dataclass, field
 from typing import Any, Callable, List, Optional
 
-from fasthtml.common import APIRouter
+from cjm_fasthtml_app_core.core.routing import APIRouter
 
 from cjm_file_discovery.core.models import FileInfo, FileType
 from cjm_fasthtml_media_gallery.core.config import (

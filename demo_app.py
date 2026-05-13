@@ -30,7 +30,8 @@ from pathlib import Path
 
 def main():
     """Main entry point - initializes media gallery and starts the server."""
-    from fasthtml.common import fast_app, Div, H1, H2, P, Span, A, Input, Label, APIRouter
+    from fasthtml.common import fast_app, Div, H1, H2, P, Span, A, Input, Label
+    from cjm_fasthtml_app_core.core.routing import APIRouter
 
     # DaisyUI and Tailwind utilities
     from cjm_fasthtml_daisyui.core.resources import get_daisyui_headers
