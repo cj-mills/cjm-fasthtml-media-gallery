@@ -1,0 +1,700 @@
+[
+  {
+    "objectID": "serving/mounter.html",
+    "href": "serving/mounter.html",
+    "title": "Mounter",
+    "section": "",
+    "text": "Mounts directories for static file serving with instance-level state. Uses Starlette’s StaticFiles middleware for efficient serving with proper MIME types, caching headers, and range request support.\n\n\n\n\ndef DirectoryMounter(\n    \n):\n\nMounts directories for static file serving with instance-level state.\n\n\n\n\n\ndef mount(\n    app, # FastHTML/Starlette application instance\n    directories:List, # List of directory paths to mount\n)-&gt;None:\n\nMount directories to app for static file serving.\n\n\n\n\n\ndef get_url(\n    file_path:str, # Full path to the file\n)-&gt;Optional: # URL to access the file, or None if not in a mounted directory\n\nGet URL for a file based on mounted directories.\n\n\n\n\n\ndef is_mounted(\n    directory:str, # Directory path to check\n)-&gt;bool: # True if the directory is mounted\n\nCheck if a directory is currently mounted.\n\n\n\n\n\ndef get_mounted_directories(\n    \n)-&gt;List: # List of mounted directory paths\n\nGet list of currently mounted directories.\n\n\n\n\n\ndef unmount_all(\n    \n)-&gt;None:\n\nRemove all mounts from this instance.\n\n\n\n\n\ndef create_url_getter(\n    \n)-&gt;callable: # Function that converts path to URL\n\nCreate a URL getter function for use with gallery components.",
+    "crumbs": [
+      "serving",
+      "Mounter"
+    ]
+  },
+  {
+    "objectID": "serving/mounter.html#directorymounter",
+    "href": "serving/mounter.html#directorymounter",
+    "title": "Mounter",
+    "section": "",
+    "text": "Mounts directories for static file serving with instance-level state. Uses Starlette’s StaticFiles middleware for efficient serving with proper MIME types, caching headers, and range request support.\n\n\n\n\ndef DirectoryMounter(\n    \n):\n\nMounts directories for static file serving with instance-level state.\n\n\n\n\n\ndef mount(\n    app, # FastHTML/Starlette application instance\n    directories:List, # List of directory paths to mount\n)-&gt;None:\n\nMount directories to app for static file serving.\n\n\n\n\n\ndef get_url(\n    file_path:str, # Full path to the file\n)-&gt;Optional: # URL to access the file, or None if not in a mounted directory\n\nGet URL for a file based on mounted directories.\n\n\n\n\n\ndef is_mounted(\n    directory:str, # Directory path to check\n)-&gt;bool: # True if the directory is mounted\n\nCheck if a directory is currently mounted.\n\n\n\n\n\ndef get_mounted_directories(\n    \n)-&gt;List: # List of mounted directory paths\n\nGet list of currently mounted directories.\n\n\n\n\n\ndef unmount_all(\n    \n)-&gt;None:\n\nRemove all mounts from this instance.\n\n\n\n\n\ndef create_url_getter(\n    \n)-&gt;callable: # Function that converts path to URL\n\nCreate a URL getter function for use with gallery components.",
+    "crumbs": [
+      "serving",
+      "Mounter"
+    ]
+  },
+  {
+    "objectID": "serving/mounter.html#tests",
+    "href": "serving/mounter.html#tests",
+    "title": "Mounter",
+    "section": "Tests",
+    "text": "Tests\n\nimport tempfile\n\n# Simple mock app for testing\nclass MockApp:\n    def __init__(self):\n        self.routes = []\n\n# Test DirectoryMounter initialization\nmounter = DirectoryMounter()\nassert mounter._mounted == {}\nassert mounter._app is None\nassert mounter.ROUTE_PREFIX_PATTERN == \"mg_static_\"\n\nprint(\"DirectoryMounter initialization tests passed!\")\n\nDirectoryMounter initialization tests passed!\n\n\n\n# Test prefix generation\nmounter = DirectoryMounter()\nprefix = mounter._generate_prefix(\"/some/path\")\nassert prefix.startswith(\"mg_static_\")\nassert len(prefix) == len(\"mg_static_\") + 8  # 8 char hash\n\n# Same path should give same prefix\nprefix2 = mounter._generate_prefix(\"/some/path\")\nassert prefix == prefix2\n\n# Different path should give different prefix\nprefix3 = mounter._generate_prefix(\"/other/path\")\nassert prefix3 != prefix\n\nprint(\"Prefix generation tests passed!\")\n\nPrefix generation tests passed!\n\n\n\n# Test mounting directories\nwith tempfile.TemporaryDirectory() as tmpdir:\n    # Create test structure\n    subdir = Path(tmpdir) / \"media\"\n    subdir.mkdir()\n    test_file = subdir / \"video.mp4\"\n    test_file.write_text(\"test content\")\n    \n    app = MockApp()\n    mounter = DirectoryMounter()\n    \n    # Mount directory\n    mounter.mount(app, [str(subdir)])\n    \n    # Verify mount was added to app routes\n    assert len(app.routes) == 1\n    assert isinstance(app.routes[0], Mount)\n    assert app.routes[0].path.startswith(\"/mg_static_\")\n    \n    # Verify internal state\n    assert mounter.is_mounted(str(subdir))\n    assert str(subdir) in mounter.get_mounted_directories()\n    \n    # Test get_url\n    url = mounter.get_url(str(test_file))\n    assert url is not None\n    assert url.startswith(\"/mg_static_\")\n    assert \"video.mp4\" in url\n    \n    # File not in mount should return None\n    other_file = Path(tmpdir) / \"other.txt\"\n    other_file.write_text(\"other\")\n    assert mounter.get_url(str(other_file)) is None\n\nprint(\"Mount and URL tests passed!\")\n\nMount and URL tests passed!\n\n\n\n# Test multiple mounts and unmount_all\nwith tempfile.TemporaryDirectory() as tmpdir:\n    dir1 = Path(tmpdir) / \"dir1\"\n    dir2 = Path(tmpdir) / \"dir2\"\n    dir1.mkdir()\n    dir2.mkdir()\n    \n    app = MockApp()\n    mounter = DirectoryMounter()\n    \n    # Mount multiple directories\n    mounter.mount(app, [str(dir1), str(dir2)])\n    assert len(app.routes) == 2\n    assert len(mounter.get_mounted_directories()) == 2\n    \n    # Unmount all\n    mounter.unmount_all()\n    assert len(app.routes) == 0\n    assert len(mounter.get_mounted_directories()) == 0\n\nprint(\"Multiple mounts and unmount tests passed!\")\n\nMultiple mounts and unmount tests passed!\n\n\n\n# Test remounting clears old mounts\nwith tempfile.TemporaryDirectory() as tmpdir:\n    dir1 = Path(tmpdir) / \"dir1\"\n    dir2 = Path(tmpdir) / \"dir2\"\n    dir1.mkdir()\n    dir2.mkdir()\n    \n    app = MockApp()\n    mounter = DirectoryMounter()\n    \n    # First mount\n    mounter.mount(app, [str(dir1)])\n    assert len(app.routes) == 1\n    assert mounter.is_mounted(str(dir1))\n    \n    # Remount with different directory - should clear old mount\n    mounter.mount(app, [str(dir2)])\n    assert len(app.routes) == 1  # Old mount removed, new one added\n    assert not mounter.is_mounted(str(dir1))\n    assert mounter.is_mounted(str(dir2))\n\nprint(\"Remount cleanup tests passed!\")\n\nRemount cleanup tests passed!\n\n\n\n# Test URL generation for nested files\nwith tempfile.TemporaryDirectory() as tmpdir:\n    # Create nested structure\n    nested = Path(tmpdir) / \"media\" / \"videos\" / \"2024\"\n    nested.mkdir(parents=True)\n    test_file = nested / \"clip.mp4\"\n    test_file.write_text(\"test\")\n    \n    app = MockApp()\n    mounter = DirectoryMounter()\n    mounter.mount(app, [str(Path(tmpdir) / \"media\")])\n    \n    # URL should include full relative path\n    url = mounter.get_url(str(test_file))\n    assert url is not None\n    assert \"videos/2024/clip.mp4\" in url\n\nprint(\"Nested file URL tests passed!\")\n\nNested file URL tests passed!\n\n\n\n# Test create_url_getter\nwith tempfile.TemporaryDirectory() as tmpdir:\n    subdir = Path(tmpdir) / \"media\"\n    subdir.mkdir()\n    (subdir / \"video.mp4\").write_text(\"test\")\n    \n    app = MockApp()\n    mounter = DirectoryMounter()\n    mounter.mount(app, [str(subdir)])\n    \n    # Create getter function\n    get_url = mounter.create_url_getter()\n    \n    # Test getter\n    url = get_url(str(subdir / \"video.mp4\"))\n    assert url is not None\n    assert \"video.mp4\" in url\n    \n    # Test file not in mount\n    assert get_url(\"/some/other/path.txt\") is None\n\nprint(\"create_url_getter tests passed!\")\n\ncreate_url_getter tests passed!",
+    "crumbs": [
+      "serving",
+      "Mounter"
+    ]
+  },
+  {
+    "objectID": "core/icons.html",
+    "href": "core/icons.html",
+    "title": "Icons",
+    "section": "",
+    "text": "Maps file types to Lucide icon names for consistent iconography across the gallery.\n\n# Test icon mapping\nassert MEDIA_TYPE_ICONS[FileType.AUDIO] == \"file-music\"\nassert MEDIA_TYPE_ICONS[FileType.VIDEO] == \"file-video-camera\"\nassert MEDIA_TYPE_ICONS[FileType.IMAGE] == \"image\"\nassert MEDIA_TYPE_ICONS[FileType.DOCUMENT] == \"file-text\"\nassert MEDIA_TYPE_ICONS[FileType.OTHER] == \"file\"\n\n# Verify all FileTypes have an icon\nfor file_type in FileType:\n    assert file_type in MEDIA_TYPE_ICONS, f\"Missing icon for {file_type}\"\n\nprint(\"MEDIA_TYPE_ICONS tests passed!\")\n\nMEDIA_TYPE_ICONS tests passed!",
+    "crumbs": [
+      "core",
+      "Icons"
+    ]
+  },
+  {
+    "objectID": "core/icons.html#media-type-icon-mapping",
+    "href": "core/icons.html#media-type-icon-mapping",
+    "title": "Icons",
+    "section": "",
+    "text": "Maps file types to Lucide icon names for consistent iconography across the gallery.\n\n# Test icon mapping\nassert MEDIA_TYPE_ICONS[FileType.AUDIO] == \"file-music\"\nassert MEDIA_TYPE_ICONS[FileType.VIDEO] == \"file-video-camera\"\nassert MEDIA_TYPE_ICONS[FileType.IMAGE] == \"image\"\nassert MEDIA_TYPE_ICONS[FileType.DOCUMENT] == \"file-text\"\nassert MEDIA_TYPE_ICONS[FileType.OTHER] == \"file\"\n\n# Verify all FileTypes have an icon\nfor file_type in FileType:\n    assert file_type in MEDIA_TYPE_ICONS, f\"Missing icon for {file_type}\"\n\nprint(\"MEDIA_TYPE_ICONS tests passed!\")\n\nMEDIA_TYPE_ICONS tests passed!",
+    "crumbs": [
+      "core",
+      "Icons"
+    ]
+  },
+  {
+    "objectID": "core/icons.html#gallery-ui-icons",
+    "href": "core/icons.html#gallery-ui-icons",
+    "title": "Icons",
+    "section": "Gallery UI Icons",
+    "text": "Gallery UI Icons\nIcons used in the gallery UI controls and preview modal.\n\n# Test gallery icons\nassert GALLERY_ICONS[\"grid_view\"] == \"grid-3x3\"\nassert GALLERY_ICONS[\"list_view\"] == \"list\"\nassert GALLERY_ICONS[\"play\"] == \"play\"\nassert GALLERY_ICONS[\"close\"] == \"x\"\nassert GALLERY_ICONS[\"prev\"] == \"chevron-left\"\nassert GALLERY_ICONS[\"next\"] == \"chevron-right\"\n\nprint(\"GALLERY_ICONS tests passed!\")\n\nGALLERY_ICONS tests passed!",
+    "crumbs": [
+      "core",
+      "Icons"
+    ]
+  },
+  {
+    "objectID": "core/icons.html#media-type-colors",
+    "href": "core/icons.html#media-type-colors",
+    "title": "Icons",
+    "section": "Media Type Colors",
+    "text": "Media Type Colors\nSemantic colors for file type badges and icons.\n\n# Test badge colors\nassert \"badge-info\" in MEDIA_TYPE_BADGE_COLORS[FileType.AUDIO]\nassert \"badge-primary\" in MEDIA_TYPE_BADGE_COLORS[FileType.VIDEO]\nassert \"badge-success\" in MEDIA_TYPE_BADGE_COLORS[FileType.IMAGE]\n\n# Verify all FileTypes have a badge color\nfor file_type in FileType:\n    assert file_type in MEDIA_TYPE_BADGE_COLORS, f\"Missing badge color for {file_type}\"\n\nprint(\"MEDIA_TYPE_BADGE_COLORS tests passed!\")\n\nMEDIA_TYPE_BADGE_COLORS tests passed!\n\n\n\n# Test text colors\nassert \"text-info\" in MEDIA_TYPE_TEXT_COLORS[FileType.AUDIO]\nassert \"text-primary\" in MEDIA_TYPE_TEXT_COLORS[FileType.VIDEO]\nassert \"text-success\" in MEDIA_TYPE_TEXT_COLORS[FileType.IMAGE]\n\nprint(\"MEDIA_TYPE_TEXT_COLORS tests passed!\")\n\nMEDIA_TYPE_TEXT_COLORS tests passed!",
+    "crumbs": [
+      "core",
+      "Icons"
+    ]
+  },
+  {
+    "objectID": "core/icons.html#icon-helper-functions",
+    "href": "core/icons.html#icon-helper-functions",
+    "title": "Icons",
+    "section": "Icon Helper Functions",
+    "text": "Icon Helper Functions\nConvenience functions for rendering icons with appropriate styling.\n\n\nget_media_type_icon\n\ndef get_media_type_icon(\n    file_type:FileType, # File type to get icon for\n    size:int=4, # Icon size (Tailwind scale)\n    with_color:bool=True, # Apply semantic color\n)-&gt;Any: # Lucide icon component\n\nGet the appropriate icon for a file type.\n\nfrom fasthtml.common import to_xml\n\n# Test get_media_type_icon\naudio_icon = get_media_type_icon(FileType.AUDIO)\nhtml = to_xml(audio_icon)\nassert \"&lt;svg\" in html.lower()\nassert \"text-info\" in html  # Color applied\n\nvideo_icon = get_media_type_icon(FileType.VIDEO, size=6)\nhtml = to_xml(video_icon)\nassert \"text-primary\" in html\n\n# Test without color\nicon_no_color = get_media_type_icon(FileType.IMAGE, with_color=False)\nhtml = to_xml(icon_no_color)\nassert \"text-success\" not in html\n\nprint(\"get_media_type_icon tests passed!\")\n\nget_media_type_icon tests passed!\n\n\n\n\n\nget_gallery_icon\n\ndef get_gallery_icon(\n    icon_key:str, # Key from GALLERY_ICONS\n    size:int=4, # Icon size (Tailwind scale)\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Lucide icon component\n\nGet a gallery UI icon by key.\n\nfrom cjm_fasthtml_tailwind.utilities.typography import text_color\n\n# Test get_gallery_icon\ngrid_icon = get_gallery_icon(\"grid_view\")\nhtml = to_xml(grid_icon)\nassert \"&lt;svg\" in html.lower()\n\nplay_icon = get_gallery_icon(\"play\", size=6, cls=str(text_color.white))\nhtml = to_xml(play_icon)\nassert \"text-white\" in html\n\n# Test fallback for unknown key\nunknown_icon = get_gallery_icon(\"unknown_key\")\nhtml = to_xml(unknown_icon)\nassert \"&lt;svg\" in html.lower()  # Falls back to circle-question-mark\n\nprint(\"get_gallery_icon tests passed!\")\n\nget_gallery_icon tests passed!",
+    "crumbs": [
+      "core",
+      "Icons"
+    ]
+  },
+  {
+    "objectID": "core/config.html",
+    "href": "core/config.html",
+    "title": "Config",
+    "section": "",
+    "text": "Enumeration types for gallery configuration options.\n\n\n\n\ndef ViewMode(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nDisplay modes for media gallery.\n\n\n\n\n\ndef SelectionMode(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nFile selection modes.\n\n\n\n\n\ndef CardSize(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nCard size presets for grid view.\n\n\n\n\n\ndef ListColumn(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nAvailable columns for list view.\n\n# Test enums\nassert ViewMode.GRID.value == \"grid\"\nassert ViewMode.LIST == \"list\"\nassert SelectionMode.SINGLE.value == \"single\"\nassert CardSize.MEDIUM.value == \"medium\"\nassert ListColumn.NAME.value == \"name\"\nprint(\"Enum tests passed!\")\n\nEnum tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#enums",
+    "href": "core/config.html#enums",
+    "title": "Config",
+    "section": "",
+    "text": "Enumeration types for gallery configuration options.\n\n\n\n\ndef ViewMode(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nDisplay modes for media gallery.\n\n\n\n\n\ndef SelectionMode(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nFile selection modes.\n\n\n\n\n\ndef CardSize(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nCard size presets for grid view.\n\n\n\n\n\ndef ListColumn(\n    args:VAR_POSITIONAL, kwds:VAR_KEYWORD\n):\n\nAvailable columns for list view.\n\n# Test enums\nassert ViewMode.GRID.value == \"grid\"\nassert ViewMode.LIST == \"list\"\nassert SelectionMode.SINGLE.value == \"single\"\nassert CardSize.MEDIUM.value == \"medium\"\nassert ListColumn.NAME.value == \"name\"\nprint(\"Enum tests passed!\")\n\nEnum tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#gridconfig",
+    "href": "core/config.html#gridconfig",
+    "title": "Config",
+    "section": "GridConfig",
+    "text": "GridConfig\nConfiguration for the grid view layout.\n\n\nGridConfig\n\ndef GridConfig(\n    columns:int=4, card_size:CardSize=&lt;CardSize.MEDIUM: 'medium'&gt;, show_thumbnails:bool=True,\n    show_file_size:bool=True, show_file_type:bool=True\n)-&gt;None:\n\nGrid view display configuration.\n\n# Test GridConfig defaults\ngrid_config = GridConfig()\nassert grid_config.columns == 4\nassert grid_config.card_size == CardSize.MEDIUM\nassert grid_config.show_thumbnails == True\n\n# Test custom config\ncustom_grid = GridConfig(\n    columns=6,\n    card_size=CardSize.SMALL,\n    show_thumbnails=False\n)\nassert custom_grid.columns == 6\nassert custom_grid.card_size == CardSize.SMALL\nassert custom_grid.show_thumbnails == False\n\nprint(\"GridConfig tests passed!\")\n\nGridConfig tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#listconfig",
+    "href": "core/config.html#listconfig",
+    "title": "Config",
+    "section": "ListConfig",
+    "text": "ListConfig\nConfiguration for the list view layout.\n\n\nListConfig\n\ndef ListConfig(\n    columns:List=&lt;factory&gt;, show_icons:bool=True, striped:bool=False, compact:bool=False\n)-&gt;None:\n\nList view display configuration.\n\n# Test ListConfig defaults\nlist_config = ListConfig()\nassert ListColumn.NAME in list_config.columns\nassert ListColumn.SIZE in list_config.columns\nassert list_config.show_icons == True\nassert list_config.striped == False\n\n# Test custom config\ncustom_list = ListConfig(\n    columns=[ListColumn.NAME, ListColumn.TYPE],\n    striped=True,\n    compact=True\n)\nassert len(custom_list.columns) == 2\nassert custom_list.striped == True\nassert custom_list.compact == True\n\nprint(\"ListConfig tests passed!\")\n\nListConfig tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#filterconfig",
+    "href": "core/config.html#filterconfig",
+    "title": "Config",
+    "section": "FilterConfig",
+    "text": "FilterConfig\nConfiguration for filtering displayed media files.\n\n\nFilterConfig\n\ndef FilterConfig(\n    enabled_types:List=&lt;factory&gt;, allow_type_filter:bool=True, show_hidden:bool=False, custom_filter:Optional=None\n)-&gt;None:\n\nFilter configuration for media gallery.\n\n# Test FilterConfig\nfilter_config = FilterConfig()\n\n# Test default (media types enabled)\naudio_file = FileInfo(\n    name=\"song.mp3\", path=\"/song.mp3\", is_directory=False,\n    file_type=FileType.AUDIO\n)\nassert filter_config.matches(audio_file) == True\n\n# Test hidden file filtering\nhidden_file = FileInfo(\n    name=\".hidden.mp3\", path=\"/.hidden.mp3\", is_directory=False,\n    file_type=FileType.AUDIO\n)\nassert filter_config.matches(hidden_file) == False\n\nfilter_with_hidden = FilterConfig(show_hidden=True)\nassert filter_with_hidden.matches(hidden_file) == True\n\n# Test type filtering\ncode_file = FileInfo(\n    name=\"script.py\", path=\"/script.py\", is_directory=False,\n    file_type=FileType.CODE\n)\nassert filter_config.matches(code_file) == False  # CODE not in default enabled\n\n# Test enabled types\naudio_only_filter = FilterConfig(enabled_types=[FileType.AUDIO])\nvideo_file = FileInfo(\n    name=\"video.mp4\", path=\"/video.mp4\", is_directory=False,\n    file_type=FileType.VIDEO\n)\nassert audio_only_filter.matches(audio_file) == True\nassert audio_only_filter.matches(video_file) == False\n\n# Test custom filter\ndef size_filter(f: FileInfo) -&gt; bool:\n    return f.size is None or f.size &lt; 1000000  # Under 1MB\n\ncustom_filter = FilterConfig(custom_filter=size_filter)\nsmall_file = FileInfo(\n    name=\"small.mp3\", path=\"/small.mp3\", is_directory=False,\n    file_type=FileType.AUDIO, size=500\n)\nlarge_file = FileInfo(\n    name=\"large.mp3\", path=\"/large.mp3\", is_directory=False,\n    file_type=FileType.AUDIO, size=10000000\n)\nassert custom_filter.matches(small_file) == True\nassert custom_filter.matches(large_file) == False\n\nprint(\"FilterConfig tests passed!\")\n\nFilterConfig tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#paginationconfig",
+    "href": "core/config.html#paginationconfig",
+    "title": "Config",
+    "section": "PaginationConfig",
+    "text": "PaginationConfig\nConfiguration for pagination controls.\n\n\nPaginationConfig\n\ndef PaginationConfig(\n    items_per_page:int=24, show_pagination:bool=True, show_page_size_selector:bool=False,\n    page_size_options:List=&lt;factory&gt;\n)-&gt;None:\n\nPagination configuration.\n\n# Test PaginationConfig\npagination = PaginationConfig()\nassert pagination.items_per_page == 24\nassert pagination.show_pagination == True\nassert 24 in pagination.page_size_options\n\ncustom_pagination = PaginationConfig(\n    items_per_page=48,\n    show_page_size_selector=True\n)\nassert custom_pagination.items_per_page == 48\nassert custom_pagination.show_page_size_selector == True\n\nprint(\"PaginationConfig tests passed!\")\n\nPaginationConfig tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#previewconfig",
+    "href": "core/config.html#previewconfig",
+    "title": "Config",
+    "section": "PreviewConfig",
+    "text": "PreviewConfig\nConfiguration for the preview modal.\n\n\nPreviewConfig\n\ndef PreviewConfig(\n    enable_preview:bool=True, show_download_button:bool=True, show_info_panel:bool=True, show_navigation:bool=True,\n    autoplay_video:bool=False, autoplay_audio:bool=False\n)-&gt;None:\n\nPreview modal configuration.\n\n# Test PreviewConfig\npreview = PreviewConfig()\nassert preview.enable_preview == True\nassert preview.show_download_button == True\nassert preview.autoplay_video == False\n\ncustom_preview = PreviewConfig(\n    show_navigation=False,\n    autoplay_video=True\n)\nassert custom_preview.show_navigation == False\nassert custom_preview.autoplay_video == True\n\nprint(\"PreviewConfig tests passed!\")\n\nPreviewConfig tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#gallerycallbacks",
+    "href": "core/config.html#gallerycallbacks",
+    "title": "Config",
+    "section": "GalleryCallbacks",
+    "text": "GalleryCallbacks\nOptional callbacks for customizing gallery behavior.\n\n\nGalleryCallbacks\n\ndef GalleryCallbacks(\n    on_select:Optional=None, on_selection_change:Optional=None, on_preview:Optional=None, on_download:Optional=None,\n    validate_selection:Optional=None\n)-&gt;None:\n\nEvent callbacks for gallery customization.\n\n# Test GalleryCallbacks\nselected_files = []\n\ndef track_select(path: str):\n    selected_files.append(path)\n\ndef validate_audio_only(path: str) -&gt; Tuple[bool, str]:\n    if path.endswith('.mp3') or path.endswith('.wav'):\n        return (True, \"\")\n    return (False, \"Only audio files allowed\")\n\ncallbacks = GalleryCallbacks(\n    on_select=track_select,\n    validate_selection=validate_audio_only\n)\n\n# Test callback works\ncallbacks.on_select(\"/test/song.mp3\")\nassert selected_files == [\"/test/song.mp3\"]\n\n# Test validation\nvalid, msg = callbacks.validate_selection(\"/test.mp3\")\nassert valid == True\nvalid, msg = callbacks.validate_selection(\"/test.mp4\")\nassert valid == False\nassert \"Only audio\" in msg\n\nprint(\"GalleryCallbacks tests passed!\")\n\nGalleryCallbacks tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "core/config.html#galleryconfig",
+    "href": "core/config.html#galleryconfig",
+    "title": "Config",
+    "section": "GalleryConfig",
+    "text": "GalleryConfig\nMain configuration for the media gallery component.\n\n\nGalleryConfig\n\ndef GalleryConfig(\n    default_view:ViewMode=&lt;ViewMode.GRID: 'grid'&gt;, allow_view_toggle:bool=True, grid:GridConfig=&lt;factory&gt;,\n    list:ListConfig=&lt;factory&gt;, filter:FilterConfig=&lt;factory&gt;, pagination:PaginationConfig=&lt;factory&gt;,\n    preview:PreviewConfig=&lt;factory&gt;, selection_mode:SelectionMode=&lt;SelectionMode.NONE: 'none'&gt;,\n    max_selections:Optional=None, gallery_id:str='media-gallery', content_id:str='media-gallery-content',\n    controls_id:str='media-gallery-controls', preview_modal_id:str='media-preview-modal',\n    keyboard_config:Optional=None\n)-&gt;None:\n\nMain configuration for media gallery.\n\n# Test GalleryConfig\nconfig = GalleryConfig()\n\n# Test defaults\nassert config.default_view == ViewMode.GRID\nassert config.allow_view_toggle == True\nassert config.selection_mode == SelectionMode.NONE\nassert config.gallery_id == \"media-gallery\"\nassert isinstance(config.grid, GridConfig)\nassert isinstance(config.list, ListConfig)\nassert isinstance(config.filter, FilterConfig)\nassert isinstance(config.pagination, PaginationConfig)\nassert isinstance(config.preview, PreviewConfig)\n\n# Test can_select\nfile = FileInfo(name=\"test.mp3\", path=\"/test.mp3\", is_directory=False, file_type=FileType.AUDIO)\nfolder = FileInfo(name=\"folder\", path=\"/folder\", is_directory=True)\n\n# Default: no selection\nassert config.can_select(file) == False\nassert config.can_select(folder) == False\n\n# With selection enabled\nselect_config = GalleryConfig(selection_mode=SelectionMode.SINGLE)\nassert select_config.can_select(file) == True\nassert select_config.can_select(folder) == False  # Folders never selectable\n\n# Test with custom IDs\ncustom_config = GalleryConfig(\n    gallery_id=\"my-gallery\",\n    content_id=\"my-content\",\n    grid=GridConfig(columns=6),\n    pagination=PaginationConfig(items_per_page=48)\n)\nassert custom_config.gallery_id == \"my-gallery\"\nassert custom_config.grid.columns == 6\nassert custom_config.pagination.items_per_page == 48\n\nprint(\"GalleryConfig tests passed!\")\n\nGalleryConfig tests passed!",
+    "crumbs": [
+      "core",
+      "Config"
+    ]
+  },
+  {
+    "objectID": "components/list_view.html",
+    "href": "components/list_view.html",
+    "title": "List View",
+    "section": "",
+    "text": "Table header rendering based on configured columns.\n\n\n\n\ndef render_list_header(\n    config:GalleryConfig, # Gallery configuration\n    show_selection:bool=False, # Show selection checkbox column\n)-&gt;functools.partial(&lt;function ft_hx at 0x7fcc0329e0c0&gt;, 'thead'): # Table header\n\nRender the table header row.\n\nfrom fasthtml.common import to_xml\n\n# Test list header\nconfig = GalleryConfig()\nheader = render_list_header(config)\nhtml = to_xml(header)\nassert \"&lt;thead\" in html\nassert \"Name\" in html\nassert \"Type\" in html\nassert \"Size\" in html\nassert \"Modified\" in html\n\n# Test with selection column\nheader = render_list_header(config, show_selection=True)\nhtml = to_xml(header)\n# Check for selection column (empty header) and all 4 data columns\nassert 'class=\"w-10\"' in html  # Selection column with width\nassert \"Name\" in html\nassert \"Type\" in html\nassert \"Size\" in html\nassert \"Modified\" in html\n\nprint(\"render_list_header tests passed!\")\n\nrender_list_header tests passed!",
+    "crumbs": [
+      "components",
+      "List View"
+    ]
+  },
+  {
+    "objectID": "components/list_view.html#column-headers",
+    "href": "components/list_view.html#column-headers",
+    "title": "List View",
+    "section": "",
+    "text": "Table header rendering based on configured columns.\n\n\n\n\ndef render_list_header(\n    config:GalleryConfig, # Gallery configuration\n    show_selection:bool=False, # Show selection checkbox column\n)-&gt;functools.partial(&lt;function ft_hx at 0x7fcc0329e0c0&gt;, 'thead'): # Table header\n\nRender the table header row.\n\nfrom fasthtml.common import to_xml\n\n# Test list header\nconfig = GalleryConfig()\nheader = render_list_header(config)\nhtml = to_xml(header)\nassert \"&lt;thead\" in html\nassert \"Name\" in html\nassert \"Type\" in html\nassert \"Size\" in html\nassert \"Modified\" in html\n\n# Test with selection column\nheader = render_list_header(config, show_selection=True)\nhtml = to_xml(header)\n# Check for selection column (empty header) and all 4 data columns\nassert 'class=\"w-10\"' in html  # Selection column with width\nassert \"Name\" in html\nassert \"Type\" in html\nassert \"Size\" in html\nassert \"Modified\" in html\n\nprint(\"render_list_header tests passed!\")\n\nrender_list_header tests passed!",
+    "crumbs": [
+      "components",
+      "List View"
+    ]
+  },
+  {
+    "objectID": "components/list_view.html#list-row",
+    "href": "components/list_view.html#list-row",
+    "title": "List View",
+    "section": "List Row",
+    "text": "List Row\nIndividual row component for a media file.\n\n\nrender_list_row\n\ndef render_list_row(\n    file_info:FileInfo, # File to render\n    config:GalleryConfig, # Gallery configuration\n    index:int, # Index in the list\n    is_selected:bool=False, # Whether file is selected\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    hx_target:Optional=None, # HTMX target for swaps\n)-&gt;functools.partial(&lt;function ft_hx at 0x7fcc0329e0c0&gt;, 'tr'): # Table row\n\nRender a media file as a table row.\n\n# Test list row\nconfig = GalleryConfig()\nfile_info = FileInfo(\n    name=\"song.mp3\", path=\"/music/song.mp3\", is_directory=False,\n    file_type=FileType.AUDIO, extension=\"mp3\", size=5000000\n)\n\nrow = render_list_row(\n    file_info=file_info,\n    config=config,\n    index=0,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(row)\nassert \"&lt;tr\" in html\nassert \"song.mp3\" in html\nassert \"media-gallery-row-0\" in html\nassert \"Audio\" in html  # Type column\nassert \"hx-post\" in html\n\n# Test with selection\nselect_config = GalleryConfig(selection_mode=SelectionMode.SINGLE)\nrow = render_list_row(\n    file_info=file_info,\n    config=select_config,\n    index=1,\n    is_selected=True,\n    select_url=\"/select\"\n)\nhtml = to_xml(row)\nassert \"checkbox\" in html\nassert \"checked\" in html\n\nprint(\"render_list_row tests passed!\")\n\nrender_list_row tests passed!",
+    "crumbs": [
+      "components",
+      "List View"
+    ]
+  },
+  {
+    "objectID": "components/list_view.html#list-view",
+    "href": "components/list_view.html#list-view",
+    "title": "List View",
+    "section": "List View",
+    "text": "List View\nComplete list view with table structure.\n\n\nrender_list_view\n\ndef render_list_view(\n    files:List, # Files to display\n    config:GalleryConfig, # Gallery configuration\n    selected_paths:Optional=None, # Currently selected paths\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    hx_target:Optional=None, # HTMX target for swaps\n    start_index:int=0, # Starting index for IDs (for pagination)\n)-&gt;Any: # List view component\n\nRender a list view of media files.\n\n# Test list view\nconfig = GalleryConfig()\nfiles = [\n    FileInfo(name=\"photo1.jpg\", path=\"/photo1.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\"),\n    FileInfo(name=\"song.mp3\", path=\"/song.mp3\", is_directory=False, file_type=FileType.AUDIO, extension=\"mp3\"),\n    FileInfo(name=\"video.mp4\", path=\"/video.mp4\", is_directory=False, file_type=FileType.VIDEO, extension=\"mp4\"),\n]\n\nlist_view = render_list_view(\n    files=files,\n    config=config,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(list_view)\nassert 'id=\"media-gallery-list\"' in html\nassert \"&lt;table\" in html\nassert \"&lt;thead\" in html\nassert \"&lt;tbody\" in html\nassert \"photo1.jpg\" in html\nassert \"song.mp3\" in html\nassert \"video.mp4\" in html\n\n# Test with striped and compact\nfrom cjm_fasthtml_media_gallery.core.config import ListConfig\nstriped_config = GalleryConfig(list=ListConfig(striped=True, compact=True))\nlist_view = render_list_view(files=files, config=striped_config)\nhtml = to_xml(list_view)\nassert \"table-zebra\" in html\nassert \"table-sm\" in html\n\nprint(\"render_list_view tests passed!\")\n\nrender_list_view tests passed!",
+    "crumbs": [
+      "components",
+      "List View"
+    ]
+  },
+  {
+    "objectID": "components/list_view.html#empty-state",
+    "href": "components/list_view.html#empty-state",
+    "title": "List View",
+    "section": "Empty State",
+    "text": "Empty State\n\n\nrender_list_empty_state\n\ndef render_list_empty_state(\n    message:str='No media files found', # Message to display\n)-&gt;Any: # Empty state component\n\nRender empty state for list view.\n\n# Test empty state\nempty = render_list_empty_state()\nhtml = to_xml(empty)\nassert \"No media files found\" in html\nassert 'id=\"media-gallery-list\"' in html\n\nprint(\"render_list_empty_state tests passed!\")\n\nrender_list_empty_state tests passed!",
+    "crumbs": [
+      "components",
+      "List View"
+    ]
+  },
+  {
+    "objectID": "components/preview.html",
+    "href": "components/preview.html",
+    "title": "Preview",
+    "section": "",
+    "text": "Header with file name and close button.",
+    "crumbs": [
+      "components",
+      "Preview"
+    ]
+  },
+  {
+    "objectID": "components/preview.html#preview-header",
+    "href": "components/preview.html#preview-header",
+    "title": "Preview",
+    "section": "",
+    "text": "Header with file name and close button.",
+    "crumbs": [
+      "components",
+      "Preview"
+    ]
+  },
+  {
+    "objectID": "components/preview.html#preview-info-panel",
+    "href": "components/preview.html#preview-info-panel",
+    "title": "Preview",
+    "section": "Preview Info Panel",
+    "text": "Preview Info Panel\nSide panel with file metadata.",
+    "crumbs": [
+      "components",
+      "Preview"
+    ]
+  },
+  {
+    "objectID": "components/preview.html#preview-footer",
+    "href": "components/preview.html#preview-footer",
+    "title": "Preview",
+    "section": "Preview Footer",
+    "text": "Preview Footer\nFooter with navigation and action buttons.",
+    "crumbs": [
+      "components",
+      "Preview"
+    ]
+  },
+  {
+    "objectID": "components/preview.html#preview-modal-content",
+    "href": "components/preview.html#preview-modal-content",
+    "title": "Preview",
+    "section": "Preview Modal Content",
+    "text": "Preview Modal Content\nContent to be inserted into the modal.\n\n\nrender_preview_content\n\ndef render_preview_content(\n    file_info:FileInfo, # File to preview\n    file_url:str, # URL to the file\n    config:GalleryConfig, # Gallery configuration\n    prev_url:Optional=None, # URL for previous file handler\n    next_url:Optional=None, # URL for next file handler\n    has_prev:bool=False, # Whether there's a previous file\n    has_next:bool=False, # Whether there's a next file\n    modal_id:Optional=None, # Modal ID to show (for auto-show script)\n    text_content:Optional=None, # Pre-read text content for text files\n    text_error:Optional=None, # Error message if text reading failed\n)-&gt;Any: # Preview modal content with auto-show script\n\nRender the preview modal content with script to show the modal.\n\nfrom fasthtml.common import to_xml\n\n# Test preview content\nconfig = GalleryConfig()\nfile_info = FileInfo(\n    name=\"photo.jpg\", path=\"/photos/photo.jpg\", is_directory=False,\n    file_type=FileType.IMAGE, extension=\"jpg\", size=1024000\n)\n\ncontent = render_preview_content(\n    file_info=file_info,\n    file_url=\"/media/photo.jpg\",\n    config=config,\n    prev_url=\"/preview_prev\",\n    next_url=\"/preview_next\",\n    has_prev=True,\n    has_next=True\n)\nhtml = to_xml(content)\nassert \"photo.jpg\" in html\nassert 'id=\"media-preview-content\"' in html\nassert \"&lt;img\" in html  # Image player\nassert \"Download\" in html\nassert \"Previous\" in html\nassert \"Next\" in html\nassert \"File Info\" in html  # Info panel\n\n# Verify the auto-show script is present\nassert \"&lt;script&gt;\" in html\nassert \"showModal\" in html\nassert \"media-preview-modal\" in html  # Default modal ID in script\n\n# Verify hx_vals with path is present for navigation\nassert 'hx-vals' in html\nassert '/photos/photo.jpg' in html  # Path should be in hx-vals\n\n# Verify hx_target is set for navigation buttons\nassert 'hx-target=\"#media-preview-modal\"' in html\n\n# Test without info panel\nfrom cjm_fasthtml_media_gallery.core.config import PreviewConfig\nno_info_config = GalleryConfig(preview=PreviewConfig(show_info_panel=False))\ncontent = render_preview_content(\n    file_info=file_info,\n    file_url=\"/media/photo.jpg\",\n    config=no_info_config\n)\nhtml = to_xml(content)\nassert \"File Info\" not in html\n\n# Test with custom modal ID\ncontent = render_preview_content(\n    file_info=file_info,\n    file_url=\"/media/photo.jpg\",\n    config=config,\n    modal_id=\"custom-modal-id\",\n    prev_url=\"/preview_prev\",\n    next_url=\"/preview_next\",\n    has_prev=True,\n    has_next=True\n)\nhtml = to_xml(content)\nassert \"custom-modal-id\" in html\nassert 'hx-target=\"#custom-modal-id\"' in html  # Custom modal ID in hx-target\n\n# Test with text content (code file)\npy_file = FileInfo(\n    name=\"script.py\", path=\"/code/script.py\", is_directory=False,\n    file_type=FileType.CODE, extension=\"py\", size=256\n)\ncontent = render_preview_content(\n    file_info=py_file,\n    file_url=\"/media/script.py\",\n    config=config,\n    text_content=\"def hello():\\n    print('Hello!')\"\n)\nhtml = to_xml(content)\nassert \"&lt;pre\" in html\nassert \"def hello()\" in html\nassert \"script.py\" in html\n\n# Test with text error\ncontent = render_preview_content(\n    file_info=py_file,\n    file_url=\"/media/script.py\",\n    config=config,\n    text_error=\"File too large\"\n)\nhtml = to_xml(content)\nassert \"Unable to preview\" in html\nassert \"File too large\" in html\n\nprint(\"render_preview_content tests passed!\")\n\nrender_preview_content tests passed!",
+    "crumbs": [
+      "components",
+      "Preview"
+    ]
+  },
+  {
+    "objectID": "components/preview.html#preview-modal-container",
+    "href": "components/preview.html#preview-modal-container",
+    "title": "Preview",
+    "section": "Preview Modal Container",
+    "text": "Preview Modal Container\nThe modal dialog element that wraps the content.\n\n\nrender_preview_modal\n\ndef render_preview_modal(\n    modal_id:str='media-preview-modal', # Modal ID\n)-&gt;functools.partial(&lt;function ft_hx at 0x7f8bb898e020&gt;, 'dialog'): # Preview modal container\n\nRender the preview modal container (empty, content loaded via HTMX).\n\n# Test preview modal container\nmodal_elem = render_preview_modal()\nhtml = to_xml(modal_elem)\nassert \"&lt;dialog\" in html\nassert 'id=\"media-preview-modal\"' in html\nassert \"modal-box\" in html\nassert \"modal-backdrop\" in html\n\n# Test with custom ID\nmodal_elem = render_preview_modal(modal_id=\"custom-preview\")\nhtml = to_xml(modal_elem)\nassert 'id=\"custom-preview\"' in html\n\nprint(\"render_preview_modal tests passed!\")\n\nrender_preview_modal tests passed!",
+    "crumbs": [
+      "components",
+      "Preview"
+    ]
+  },
+  {
+    "objectID": "components/players.html",
+    "href": "components/players.html",
+    "title": "Players",
+    "section": "",
+    "text": "Helpers for detecting and reading text-previewable files.\n\n\n\n\ndef is_text_previewable(\n    file_info:FileInfo, # File to check\n)-&gt;bool: # True if file can be previewed as text\n\nCheck if a file can be previewed as text content.\n\n\n\n\n\ndef read_text_content(\n    file_path:str, # Path to the file\n    max_size:int=10485760, # Maximum file size in bytes (default 10MB)\n)-&gt;Tuple: # (content, error_message)\n\nRead text file content with encoding fallback.\n\n# Test text preview utilities\nimport tempfile\nfrom pathlib import Path\n\n# Test is_text_previewable\npy_file = FileInfo(\n    name=\"script.py\", path=\"/script.py\", is_directory=False,\n    file_type=FileType.CODE, extension=\"py\"\n)\nassert is_text_previewable(py_file) == True\n\njson_file = FileInfo(\n    name=\"data.json\", path=\"/data.json\", is_directory=False,\n    file_type=FileType.DATA, extension=\"json\"\n)\nassert is_text_previewable(json_file) == True\n\nmd_file = FileInfo(\n    name=\"readme.md\", path=\"/readme.md\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"md\"\n)\nassert is_text_previewable(md_file) == True\n\n# Non-text files\npdf_file = FileInfo(\n    name=\"doc.pdf\", path=\"/doc.pdf\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"pdf\"\n)\nassert is_text_previewable(pdf_file) == False\n\nimage_file = FileInfo(\n    name=\"photo.jpg\", path=\"/photo.jpg\", is_directory=False,\n    file_type=FileType.IMAGE, extension=\"jpg\"\n)\nassert is_text_previewable(image_file) == False\n\n# Test read_text_content\nwith tempfile.TemporaryDirectory() as tmpdir:\n    # Test reading UTF-8 file\n    test_file = Path(tmpdir) / \"test.txt\"\n    test_file.write_text(\"Hello, World!\\nLine 2\", encoding='utf-8')\n    content, error = read_text_content(str(test_file))\n    assert content == \"Hello, World!\\nLine 2\"\n    assert error is None\n    \n    # Test file size limit\n    content, error = read_text_content(str(test_file), max_size=5)\n    assert content is None\n    assert \"too large\" in error\n    \n    # Test non-existent file\n    content, error = read_text_content(str(Path(tmpdir) / \"nonexistent.txt\"))\n    assert content is None\n    assert error is not None\n\nprint(\"Text preview utilities tests passed!\")\n\nText preview utilities tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#text-preview-utilities",
+    "href": "components/players.html#text-preview-utilities",
+    "title": "Players",
+    "section": "",
+    "text": "Helpers for detecting and reading text-previewable files.\n\n\n\n\ndef is_text_previewable(\n    file_info:FileInfo, # File to check\n)-&gt;bool: # True if file can be previewed as text\n\nCheck if a file can be previewed as text content.\n\n\n\n\n\ndef read_text_content(\n    file_path:str, # Path to the file\n    max_size:int=10485760, # Maximum file size in bytes (default 10MB)\n)-&gt;Tuple: # (content, error_message)\n\nRead text file content with encoding fallback.\n\n# Test text preview utilities\nimport tempfile\nfrom pathlib import Path\n\n# Test is_text_previewable\npy_file = FileInfo(\n    name=\"script.py\", path=\"/script.py\", is_directory=False,\n    file_type=FileType.CODE, extension=\"py\"\n)\nassert is_text_previewable(py_file) == True\n\njson_file = FileInfo(\n    name=\"data.json\", path=\"/data.json\", is_directory=False,\n    file_type=FileType.DATA, extension=\"json\"\n)\nassert is_text_previewable(json_file) == True\n\nmd_file = FileInfo(\n    name=\"readme.md\", path=\"/readme.md\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"md\"\n)\nassert is_text_previewable(md_file) == True\n\n# Non-text files\npdf_file = FileInfo(\n    name=\"doc.pdf\", path=\"/doc.pdf\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"pdf\"\n)\nassert is_text_previewable(pdf_file) == False\n\nimage_file = FileInfo(\n    name=\"photo.jpg\", path=\"/photo.jpg\", is_directory=False,\n    file_type=FileType.IMAGE, extension=\"jpg\"\n)\nassert is_text_previewable(image_file) == False\n\n# Test read_text_content\nwith tempfile.TemporaryDirectory() as tmpdir:\n    # Test reading UTF-8 file\n    test_file = Path(tmpdir) / \"test.txt\"\n    test_file.write_text(\"Hello, World!\\nLine 2\", encoding='utf-8')\n    content, error = read_text_content(str(test_file))\n    assert content == \"Hello, World!\\nLine 2\"\n    assert error is None\n    \n    # Test file size limit\n    content, error = read_text_content(str(test_file), max_size=5)\n    assert content is None\n    assert \"too large\" in error\n    \n    # Test non-existent file\n    content, error = read_text_content(str(Path(tmpdir) / \"nonexistent.txt\"))\n    assert content is None\n    assert error is not None\n\nprint(\"Text preview utilities tests passed!\")\n\nText preview utilities tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#video-player",
+    "href": "components/players.html#video-player",
+    "title": "Players",
+    "section": "Video Player",
+    "text": "Video Player\nHTML5 video player with native controls.\n\n\nrender_video_player\n\ndef render_video_player(\n    file_url:str, # URL to the video file\n    file_info:Optional=None, # File metadata for MIME type\n    autoplay:bool=False, # Autoplay video on load\n    loop:bool=False, # Loop video playback\n    muted:bool=False, # Start muted\n    poster:Optional=None, # Poster image URL\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Video element\n\nRender an HTML5 video player.\n\nfrom fasthtml.common import to_xml\n\n# Test video player\nvideo = render_video_player(\"/media/test.mp4\")\nhtml = to_xml(video)\nassert \"&lt;video\" in html\nassert \"controls\" in html\nassert \"/media/test.mp4\" in html\n\n# Test with file info\nfile_info = FileInfo(\n    name=\"video.mp4\", path=\"/video.mp4\", is_directory=False,\n    file_type=FileType.VIDEO, extension=\"mp4\"\n)\nvideo = render_video_player(\"/media/video.mp4\", file_info=file_info)\nhtml = to_xml(video)\nassert \"video/mp4\" in html\n\n# Test with options\nvideo = render_video_player(\n    \"/media/video.mp4\",\n    autoplay=True,\n    muted=True,\n    loop=True\n)\nhtml = to_xml(video)\nassert \"autoplay\" in html\nassert \"muted\" in html\nassert \"loop\" in html\n\nprint(\"render_video_player tests passed!\")\n\nrender_video_player tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#audio-player",
+    "href": "components/players.html#audio-player",
+    "title": "Players",
+    "section": "Audio Player",
+    "text": "Audio Player\nHTML5 audio player with native controls.\n\n\nrender_audio_player\n\ndef render_audio_player(\n    file_url:str, # URL to the audio file\n    file_info:Optional=None, # File metadata for MIME type\n    autoplay:bool=False, # Autoplay audio on load\n    loop:bool=False, # Loop audio playback\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Audio element container\n\nRender an HTML5 audio player.\n\n# Test audio player\naudio = render_audio_player(\"/media/song.mp3\")\nhtml = to_xml(audio)\nassert \"&lt;audio\" in html\nassert \"controls\" in html\nassert \"/media/song.mp3\" in html\n\n# Test with file info\nfile_info = FileInfo(\n    name=\"song.mp3\", path=\"/song.mp3\", is_directory=False,\n    file_type=FileType.AUDIO, extension=\"mp3\"\n)\naudio = render_audio_player(\"/media/song.mp3\", file_info=file_info)\nhtml = to_xml(audio)\nassert \"audio/mpeg\" in html\n\n# Test with options\naudio = render_audio_player(\"/media/song.mp3\", autoplay=True, loop=True)\nhtml = to_xml(audio)\nassert \"autoplay\" in html\nassert \"loop\" in html\n\nprint(\"render_audio_player tests passed!\")\n\nrender_audio_player tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#image-viewer",
+    "href": "components/players.html#image-viewer",
+    "title": "Players",
+    "section": "Image Viewer",
+    "text": "Image Viewer\nImage display with responsive sizing.\n\n\nrender_image_viewer\n\ndef render_image_viewer(\n    file_url:str, # URL to the image file\n    file_info:Optional=None, # File metadata for alt text\n    alt:Optional=None, # Alt text (uses filename if not provided)\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Image element\n\nRender an image viewer.\n\n# Test image viewer\nimg = render_image_viewer(\"/media/photo.jpg\")\nhtml = to_xml(img)\nassert \"&lt;img\" in html\nassert \"/media/photo.jpg\" in html\nassert \"object-contain\" in html\nassert 'loading=\"lazy\"' in html\n\n# Test with file info\nfile_info = FileInfo(\n    name=\"vacation.jpg\", path=\"/vacation.jpg\", is_directory=False,\n    file_type=FileType.IMAGE, extension=\"jpg\"\n)\nimg = render_image_viewer(\"/media/vacation.jpg\", file_info=file_info)\nhtml = to_xml(img)\nassert 'alt=\"vacation.jpg\"' in html\n\n# Test with custom alt\nimg = render_image_viewer(\"/media/photo.jpg\", alt=\"My Photo\")\nhtml = to_xml(img)\nassert 'alt=\"My Photo\"' in html\n\nprint(\"render_image_viewer tests passed!\")\n\nrender_image_viewer tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#text-viewer",
+    "href": "components/players.html#text-viewer",
+    "title": "Players",
+    "section": "Text Viewer",
+    "text": "Text Viewer\nScrollable text display for code, data, and text files.\n\n\nrender_text_viewer\n\ndef render_text_viewer(\n    content:str, # Text content to display\n    file_info:Optional=None, # File metadata for extension-based styling\n    error:Optional=None, # Error message if content couldn't be read\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Text viewer component\n\nRender a scrollable text viewer.\n\n# Test text viewer\nfrom fasthtml.common import to_xml\n\n# Test basic text rendering\nviewer = render_text_viewer(\"def hello():\\n    print('Hello!')\")\nhtml = to_xml(viewer)\nassert \"&lt;pre\" in html\nassert \"&lt;code\" in html\nassert \"def hello()\" in html\nassert \"font-mono\" in html\nassert \"whitespace-pre\" in html\nassert \"overflow-auto\" in html\n\n# Test with file info\npy_file = FileInfo(\n    name=\"script.py\", path=\"/script.py\", is_directory=False,\n    file_type=FileType.CODE, extension=\"py\"\n)\nviewer = render_text_viewer(\"# Python code\", file_info=py_file)\nhtml = to_xml(viewer)\nassert \"&lt;pre\" in html\n\n# Test error display\nviewer = render_text_viewer(\"\", error=\"File too large\")\nhtml = to_xml(viewer)\nassert \"Unable to preview\" in html\nassert \"File too large\" in html\nassert \"&lt;pre\" not in html\n\nprint(\"render_text_viewer tests passed!\")\n\nrender_text_viewer tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#document-preview",
+    "href": "components/players.html#document-preview",
+    "title": "Players",
+    "section": "Document Preview",
+    "text": "Document Preview\nDocument preview with PDF iframe or text placeholder.\n\n\nrender_document_preview\n\ndef render_document_preview(\n    file_url:str, # URL to the document file\n    file_info:Optional=None, # File metadata\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Document preview element\n\nRender a document preview.\n\n# Test document preview - PDF\npdf_preview = render_document_preview(\"/media/document.pdf\")\nhtml = to_xml(pdf_preview)\nassert \"&lt;iframe\" in html\nassert \"/media/document.pdf\" in html\n\n# Test with file info\nfile_info = FileInfo(\n    name=\"report.pdf\", path=\"/report.pdf\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"pdf\"\n)\npdf_preview = render_document_preview(\"/media/report.pdf\", file_info=file_info)\nhtml = to_xml(pdf_preview)\nassert 'title=\"report.pdf\"' in html\n\n# Test non-PDF document (shows placeholder)\nfile_info = FileInfo(\n    name=\"document.docx\", path=\"/document.docx\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"docx\"\n)\ndoc_preview = render_document_preview(\"/media/document.docx\", file_info=file_info)\nhtml = to_xml(doc_preview)\nassert \"&lt;div\" in html  # Placeholder div, not iframe\nassert \"document.docx\" in html\nassert \"DOCX\" in html\n\nprint(\"render_document_preview tests passed!\")\n\nrender_document_preview tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "components/players.html#unified-player-function",
+    "href": "components/players.html#unified-player-function",
+    "title": "Players",
+    "section": "Unified Player Function",
+    "text": "Unified Player Function\nSingle function that dispatches to the appropriate player based on file type.\n\n\nrender_media_player\n\ndef render_media_player(\n    file_url:str, # URL to the media file\n    file_info:FileInfo, # File metadata\n    autoplay:bool=False, # Autoplay audio/video\n    text_content:Optional=None, # Pre-read text content for text files\n    text_error:Optional=None, # Error message if text reading failed\n    cls:str='', # Additional CSS classes\n)-&gt;Any: # Media player component\n\nRender the appropriate media player based on file type.\n\n# Test unified player\n\n# Video file\nvideo_file = FileInfo(\n    name=\"video.mp4\", path=\"/video.mp4\", is_directory=False,\n    file_type=FileType.VIDEO, extension=\"mp4\"\n)\nplayer = render_media_player(\"/media/video.mp4\", video_file)\nhtml = to_xml(player)\nassert \"&lt;video\" in html\n\n# Audio file\naudio_file = FileInfo(\n    name=\"song.mp3\", path=\"/song.mp3\", is_directory=False,\n    file_type=FileType.AUDIO, extension=\"mp3\"\n)\nplayer = render_media_player(\"/media/song.mp3\", audio_file)\nhtml = to_xml(player)\nassert \"&lt;audio\" in html\n\n# Image file\nimage_file = FileInfo(\n    name=\"photo.jpg\", path=\"/photo.jpg\", is_directory=False,\n    file_type=FileType.IMAGE, extension=\"jpg\"\n)\nplayer = render_media_player(\"/media/photo.jpg\", image_file)\nhtml = to_xml(player)\nassert \"&lt;img\" in html\n\n# Document file (PDF)\ndoc_file = FileInfo(\n    name=\"doc.pdf\", path=\"/doc.pdf\", is_directory=False,\n    file_type=FileType.DOCUMENT, extension=\"pdf\"\n)\nplayer = render_media_player(\"/media/doc.pdf\", doc_file)\nhtml = to_xml(player)\nassert \"&lt;iframe\" in html\n\n# Text file with content\npy_file = FileInfo(\n    name=\"script.py\", path=\"/script.py\", is_directory=False,\n    file_type=FileType.CODE, extension=\"py\"\n)\nplayer = render_media_player(\n    \"/media/script.py\", py_file,\n    text_content=\"def hello():\\n    pass\"\n)\nhtml = to_xml(player)\nassert \"&lt;pre\" in html\nassert \"def hello()\" in html\n\n# Text file with error\nplayer = render_media_player(\n    \"/media/script.py\", py_file,\n    text_error=\"File too large\"\n)\nhtml = to_xml(player)\nassert \"Unable to preview\" in html\nassert \"File too large\" in html\n\n# JSON data file with content\njson_file = FileInfo(\n    name=\"config.json\", path=\"/config.json\", is_directory=False,\n    file_type=FileType.DATA, extension=\"json\"\n)\nplayer = render_media_player(\n    \"/media/config.json\", json_file,\n    text_content='{\"key\": \"value\"}'\n)\nhtml = to_xml(player)\nassert \"&lt;pre\" in html\nassert '\"key\"' in html\n\n# Text-previewable file without content (falls back to document preview)\nplayer = render_media_player(\"/media/script.py\", py_file)\nhtml = to_xml(player)\nassert \"&lt;div\" in html  # Document-style placeholder\n\nprint(\"render_media_player tests passed!\")\n\nrender_media_player tests passed!",
+    "crumbs": [
+      "components",
+      "Players"
+    ]
+  },
+  {
+    "objectID": "routes/handlers.html",
+    "href": "routes/handlers.html",
+    "title": "Handlers",
+    "section": "",
+    "text": "State object for tracking gallery state between requests.\n\n\n\n\ndef GalleryState(\n    view_mode:ViewMode=&lt;ViewMode.GRID: 'grid'&gt;, current_page:int=1, active_types:List=&lt;factory&gt;,\n    selected_paths:List=&lt;factory&gt;, preview_path:Optional=None\n)-&gt;None:\n\nState for the media gallery.\n\n# Test GalleryState\nstate = GalleryState(\n    view_mode=ViewMode.LIST,\n    current_page=2,\n    active_types=[FileType.IMAGE, FileType.VIDEO],\n    selected_paths=[\"/path/to/file.jpg\"]\n)\n\n# Test serialization\ndata = state.to_dict()\nassert data[\"view_mode\"] == \"list\"\nassert data[\"current_page\"] == 2\nassert \"image\" in data[\"active_types\"]\n\n# Test deserialization\nrestored = GalleryState.from_dict(data)\nassert restored.view_mode == ViewMode.LIST\nassert restored.current_page == 2\nassert FileType.IMAGE in restored.active_types\n\nprint(\"GalleryState tests passed!\")\n\nGalleryState tests passed!",
+    "crumbs": [
+      "routes",
+      "Handlers"
+    ]
+  },
+  {
+    "objectID": "routes/handlers.html#gallery-state",
+    "href": "routes/handlers.html#gallery-state",
+    "title": "Handlers",
+    "section": "",
+    "text": "State object for tracking gallery state between requests.\n\n\n\n\ndef GalleryState(\n    view_mode:ViewMode=&lt;ViewMode.GRID: 'grid'&gt;, current_page:int=1, active_types:List=&lt;factory&gt;,\n    selected_paths:List=&lt;factory&gt;, preview_path:Optional=None\n)-&gt;None:\n\nState for the media gallery.\n\n# Test GalleryState\nstate = GalleryState(\n    view_mode=ViewMode.LIST,\n    current_page=2,\n    active_types=[FileType.IMAGE, FileType.VIDEO],\n    selected_paths=[\"/path/to/file.jpg\"]\n)\n\n# Test serialization\ndata = state.to_dict()\nassert data[\"view_mode\"] == \"list\"\nassert data[\"current_page\"] == 2\nassert \"image\" in data[\"active_types\"]\n\n# Test deserialization\nrestored = GalleryState.from_dict(data)\nassert restored.view_mode == ViewMode.LIST\nassert restored.current_page == 2\nassert FileType.IMAGE in restored.active_types\n\nprint(\"GalleryState tests passed!\")\n\nGalleryState tests passed!",
+    "crumbs": [
+      "routes",
+      "Handlers"
+    ]
+  },
+  {
+    "objectID": "routes/handlers.html#handler-functions",
+    "href": "routes/handlers.html#handler-functions",
+    "title": "Handlers",
+    "section": "Handler Functions",
+    "text": "Handler Functions\nIndividual handler functions for gallery actions.",
+    "crumbs": [
+      "routes",
+      "Handlers"
+    ]
+  },
+  {
+    "objectID": "routes/handlers.html#router-initialization",
+    "href": "routes/handlers.html#router-initialization",
+    "title": "Handlers",
+    "section": "Router Initialization",
+    "text": "Router Initialization\nCreate and configure the APIRouter with all gallery routes.\n\n\ninit_router\n\ndef init_router(\n    config:GalleryConfig, # Gallery configuration\n    files_getter:Callable, # Function to get files\n    mounter:DirectoryMounter, # File URL mounter\n    state_getter:Callable, # Function to get current state\n    state_setter:Callable, # Function to save state\n    route_prefix:str='/gallery', # Route prefix for all gallery routes\n    callbacks:Optional=None, # Optional callbacks\n)-&gt;APIRouter: # Configured APIRouter with all gallery routes\n\nInitialize and return an APIRouter with all gallery routes.\n\nimport tempfile\nfrom pathlib import Path\n\n# Simple mock app for testing\nclass MockApp:\n    def __init__(self):\n        self.routes = []\napp = MockApp()\n\n# Test router initialization\nwith tempfile.TemporaryDirectory() as tmpdir:\n    # Create test files\n    (Path(tmpdir) / \"image.jpg\").write_text(\"img\")\n    (Path(tmpdir) / \"song.mp3\").write_text(\"audio\")\n    \n    config = GalleryConfig()\n    mounter = DirectoryMounter()\n    mounter.mount(app, tmpdir)\n    \n    # Simple state storage\n    _state = GalleryState(active_types=config.filter.enabled_types)\n    def get_state(): return _state\n    def set_state(s): global _state; _state = s\n    \n    # Simple files getter\n    def get_files():\n        return [\n            FileInfo(name=\"image.jpg\", path=str(Path(tmpdir) / \"image.jpg\"),\n                     is_directory=False, file_type=FileType.IMAGE),\n            FileInfo(name=\"song.mp3\", path=str(Path(tmpdir) / \"song.mp3\"),\n                     is_directory=False, file_type=FileType.AUDIO),\n        ]\n    \n    # Create router\n    router = init_router(\n        config=config,\n        files_getter=get_files,\n        mounter=mounter,\n        state_getter=get_state,\n        state_setter=set_state,\n        route_prefix=\"/gallery\",\n    )\n    \n    # Verify router was created\n    assert router is not None\n    assert router.prefix == \"/gallery\"\n\nprint(\"Router initialization tests passed!\")\n\n[DirectoryMounter] Warning: Directory does not exist: t\n[DirectoryMounter] Warning: Directory does not exist: m\n[DirectoryMounter] Warning: Directory does not exist: p\n[DirectoryMounter] Warning: Directory does not exist: t\n[DirectoryMounter] Warning: Directory does not exist: m\n[DirectoryMounter] Warning: Directory does not exist: p\n[DirectoryMounter] Warning: Directory does not exist: 3\n[DirectoryMounter] Warning: Directory does not exist: f\n[DirectoryMounter] Warning: Directory does not exist: h\n[DirectoryMounter] Warning: Directory does not exist: b\n[DirectoryMounter] Warning: Directory does not exist: e\n[DirectoryMounter] Warning: Directory does not exist: 1\n[DirectoryMounter] Warning: Directory does not exist: 8\n[DirectoryMounter] Warning: Directory does not exist: 6\nRouter initialization tests passed!",
+    "crumbs": [
+      "routes",
+      "Handlers"
+    ]
+  },
+  {
+    "objectID": "components/gallery.html",
+    "href": "components/gallery.html",
+    "title": "Gallery",
+    "section": "",
+    "text": "The inner content area that switches between grid and list views.\n\n\n\n\ndef render_gallery_content(\n    files:List, # Files to display\n    config:GalleryConfig, # Gallery configuration\n    view_mode:ViewMode, # Current view mode\n    get_file_url:Optional=None, # Function to get file URL\n    selected_paths:Optional=None, # Currently selected paths\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    hx_target:Optional=None, # HTMX target for swaps\n    start_index:int=0, # Starting index (for pagination)\n)-&gt;Any: # Content component\n\nRender the gallery content (grid or list view).\n\nfrom fasthtml.common import to_xml\n\n# Test gallery content - grid view\nconfig = GalleryConfig()\nfiles = [\n    FileInfo(name=\"photo.jpg\", path=\"/photo.jpg\", is_directory=False, file_type=FileType.IMAGE),\n    FileInfo(name=\"song.mp3\", path=\"/song.mp3\", is_directory=False, file_type=FileType.AUDIO),\n]\n\ncontent = render_gallery_content(\n    files=files,\n    config=config,\n    view_mode=ViewMode.GRID,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(content)\nassert 'id=\"media-gallery-grid\"' in html\n\n# Test list view\ncontent = render_gallery_content(\n    files=files,\n    config=config,\n    view_mode=ViewMode.LIST,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(content)\nassert 'id=\"media-gallery-list\"' in html\n\n# Test empty state\ncontent = render_gallery_content(\n    files=[],\n    config=config,\n    view_mode=ViewMode.GRID\n)\nhtml = to_xml(content)\nassert \"No media files found\" in html\n\nprint(\"render_gallery_content tests passed!\")\n\nrender_gallery_content tests passed!",
+    "crumbs": [
+      "components",
+      "Gallery"
+    ]
+  },
+  {
+    "objectID": "components/gallery.html#gallery-content",
+    "href": "components/gallery.html#gallery-content",
+    "title": "Gallery",
+    "section": "",
+    "text": "The inner content area that switches between grid and list views.\n\n\n\n\ndef render_gallery_content(\n    files:List, # Files to display\n    config:GalleryConfig, # Gallery configuration\n    view_mode:ViewMode, # Current view mode\n    get_file_url:Optional=None, # Function to get file URL\n    selected_paths:Optional=None, # Currently selected paths\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    hx_target:Optional=None, # HTMX target for swaps\n    start_index:int=0, # Starting index (for pagination)\n)-&gt;Any: # Content component\n\nRender the gallery content (grid or list view).\n\nfrom fasthtml.common import to_xml\n\n# Test gallery content - grid view\nconfig = GalleryConfig()\nfiles = [\n    FileInfo(name=\"photo.jpg\", path=\"/photo.jpg\", is_directory=False, file_type=FileType.IMAGE),\n    FileInfo(name=\"song.mp3\", path=\"/song.mp3\", is_directory=False, file_type=FileType.AUDIO),\n]\n\ncontent = render_gallery_content(\n    files=files,\n    config=config,\n    view_mode=ViewMode.GRID,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(content)\nassert 'id=\"media-gallery-grid\"' in html\n\n# Test list view\ncontent = render_gallery_content(\n    files=files,\n    config=config,\n    view_mode=ViewMode.LIST,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(content)\nassert 'id=\"media-gallery-list\"' in html\n\n# Test empty state\ncontent = render_gallery_content(\n    files=[],\n    config=config,\n    view_mode=ViewMode.GRID\n)\nhtml = to_xml(content)\nassert \"No media files found\" in html\n\nprint(\"render_gallery_content tests passed!\")\n\nrender_gallery_content tests passed!",
+    "crumbs": [
+      "components",
+      "Gallery"
+    ]
+  },
+  {
+    "objectID": "components/gallery.html#main-gallery-component",
+    "href": "components/gallery.html#main-gallery-component",
+    "title": "Gallery",
+    "section": "Main Gallery Component",
+    "text": "Main Gallery Component\nThe complete gallery with controls, content, and preview modal.\n\n\nrender_media_gallery\n\ndef render_media_gallery(\n    files:List, # Files to display\n    config:GalleryConfig, # Gallery configuration\n    view_mode:Optional=None, # Current view mode (defaults to config)\n    active_types:Optional=None, # Active type filters\n    get_file_url:Optional=None, # Function to get file URL\n    selected_paths:Optional=None, # Currently selected paths\n    toggle_view_url:Optional=None, # URL for view toggle\n    filter_url:Optional=None, # URL for type filter\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    page_url:Optional=None, # URL for pagination\n    current_page:int=1, # Current page number\n    total_items:Optional=None, # Total items (for pagination)\n    type_counts:Optional=None, # File counts per type\n)-&gt;Any: # Complete gallery component\n\nRender the complete media gallery.\n\n# Test main gallery\nconfig = GalleryConfig()\nfiles = [\n    FileInfo(name=\"photo1.jpg\", path=\"/photo1.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\"),\n    FileInfo(name=\"photo2.jpg\", path=\"/photo2.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\"),\n    FileInfo(name=\"song.mp3\", path=\"/song.mp3\", is_directory=False, file_type=FileType.AUDIO, extension=\"mp3\"),\n    FileInfo(name=\"video.mp4\", path=\"/video.mp4\", is_directory=False, file_type=FileType.VIDEO, extension=\"mp4\"),\n]\n\ngallery = render_media_gallery(\n    files=files,\n    config=config,\n    toggle_view_url=\"/toggle-view\",\n    filter_url=\"/filter\",\n    preview_url=\"/preview\",\n    page_url=\"/page\"\n)\nhtml = to_xml(gallery)\n\n# Check main container\nassert 'id=\"media-gallery\"' in html\n\n# Check controls\nassert 'id=\"media-gallery-controls\"' in html\nassert \"join\" in html  # View toggle\nassert \"Audio\" in html  # Type filters\n\n# Check content\nassert 'id=\"media-gallery-content\"' in html\nassert 'id=\"media-gallery-grid\"' in html  # Default is grid\n\n# Check preview modal\nassert 'id=\"media-preview-modal\"' in html\n\n# Check files are rendered\nassert \"photo1.jpg\" in html\nassert \"song.mp3\" in html\n\nprint(\"render_media_gallery tests passed!\")\n\nrender_media_gallery tests passed!\n\n\n\n# Test with list view\nconfig = GalleryConfig()\nfiles = [\n    FileInfo(name=\"photo1.jpg\", path=\"/photo1.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\"),\n    FileInfo(name=\"photo2.jpg\", path=\"/photo2.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\"),\n    FileInfo(name=\"song.mp3\", path=\"/song.mp3\", is_directory=False, file_type=FileType.AUDIO, extension=\"mp3\"),\n    FileInfo(name=\"video.mp4\", path=\"/video.mp4\", is_directory=False, file_type=FileType.VIDEO, extension=\"mp4\"),\n]\n\ngallery = render_media_gallery(\n    files=files,\n    config=config,\n    view_mode=ViewMode.LIST\n)\nhtml = to_xml(gallery)\nassert 'id=\"media-gallery-list\"' in html\nassert \"&lt;table\" in html\n\n# Test with type filter\ngallery = render_media_gallery(\n    files=files,\n    config=config,\n    active_types=[FileType.IMAGE]  # Only images\n)\nhtml = to_xml(gallery)\nassert \"photo1.jpg\" in html\nassert \"photo2.jpg\" in html\nassert \"song.mp3\" not in html  # Audio filtered out\nassert \"video.mp4\" not in html  # Video filtered out\n\n# Test with preview disabled\nfrom cjm_fasthtml_media_gallery.core.config import PreviewConfig\nno_preview_config = GalleryConfig(preview=PreviewConfig(enable_preview=False))\ngallery = render_media_gallery(\n    files=files,\n    config=no_preview_config\n)\nhtml = to_xml(gallery)\nassert 'id=\"media-preview-modal\"' not in html\n\nprint(\"Additional gallery tests passed!\")\n\nAdditional gallery tests passed!\n\n\n\n# Test pagination controls\nfrom cjm_fasthtml_media_gallery.core.config import PaginationConfig\n\n# Create many files to trigger pagination\nmany_files = [\n    FileInfo(name=f\"file_{i}.jpg\", path=f\"/file_{i}.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\")\n    for i in range(50)\n]\n\n# Config with small page size to trigger pagination\npaginated_config = GalleryConfig(\n    pagination=PaginationConfig(items_per_page=10, show_pagination=True)\n)\n\ngallery = render_media_gallery(\n    files=many_files,\n    config=paginated_config,\n    page_url=\"/page\",\n    current_page=1\n)\nhtml = to_xml(gallery)\n\n# Check pagination is rendered\nassert 'id=\"media-gallery-pagination\"' in html\nassert \"Next\" in html or \"next\" in html.lower()  # Next button\n\n# Check only 10 items shown (page 1)\nassert \"file_0.jpg\" in html\nassert \"file_9.jpg\" in html\nassert \"file_10.jpg\" not in html  # Should be on page 2\n\n# Test page 2\ngallery = render_media_gallery(\n    files=many_files,\n    config=paginated_config,\n    page_url=\"/page\",\n    current_page=2\n)\nhtml = to_xml(gallery)\nassert \"file_10.jpg\" in html\nassert \"file_19.jpg\" in html\nassert \"file_0.jpg\" not in html  # Should be on page 1\n\n# Test without page_url (no pagination rendered)\ngallery = render_media_gallery(\n    files=many_files,\n    config=paginated_config,\n    page_url=None  # No page URL\n)\nhtml = to_xml(gallery)\nassert 'id=\"media-gallery-pagination\"' not in html\n\nprint(\"Pagination tests passed!\")\n\nPagination tests passed!",
+    "crumbs": [
+      "components",
+      "Gallery"
+    ]
+  },
+  {
+    "objectID": "components/controls.html",
+    "href": "components/controls.html",
+    "title": "Controls",
+    "section": "",
+    "text": "Buttons to switch between grid and list view.\n\n\n\n\ndef render_view_toggle(\n    current_mode:ViewMode, # Current view mode\n    toggle_url:str, # URL for toggle handler\n    hx_target:Optional=None, # HTMX target for swap\n)-&gt;Any: # View toggle button group\n\nRender view mode toggle buttons.\n\nfrom fasthtml.common import to_xml\n\n# Test view toggle - grid mode active\ntoggle = render_view_toggle(ViewMode.GRID, \"/toggle-view\", \"#gallery\")\nhtml = to_xml(toggle)\nassert \"join\" in html\nassert \"btn-primary\" in html  # Active button\nassert \"btn-ghost\" in html    # Inactive button\nassert \"hx-post\" in html      # HTMX on inactive\n\n# Test view toggle - list mode active\ntoggle = render_view_toggle(ViewMode.LIST, \"/toggle-view\", \"#gallery\")\nhtml = to_xml(toggle)\n# Both buttons should be present\nassert \"Grid view\" in html or \"grid_view\" in html.lower() or \"&lt;svg\" in html\n\nprint(\"render_view_toggle tests passed!\")\n\nrender_view_toggle tests passed!",
+    "crumbs": [
+      "components",
+      "Controls"
+    ]
+  },
+  {
+    "objectID": "components/controls.html#view-mode-toggle",
+    "href": "components/controls.html#view-mode-toggle",
+    "title": "Controls",
+    "section": "",
+    "text": "Buttons to switch between grid and list view.\n\n\n\n\ndef render_view_toggle(\n    current_mode:ViewMode, # Current view mode\n    toggle_url:str, # URL for toggle handler\n    hx_target:Optional=None, # HTMX target for swap\n)-&gt;Any: # View toggle button group\n\nRender view mode toggle buttons.\n\nfrom fasthtml.common import to_xml\n\n# Test view toggle - grid mode active\ntoggle = render_view_toggle(ViewMode.GRID, \"/toggle-view\", \"#gallery\")\nhtml = to_xml(toggle)\nassert \"join\" in html\nassert \"btn-primary\" in html  # Active button\nassert \"btn-ghost\" in html    # Inactive button\nassert \"hx-post\" in html      # HTMX on inactive\n\n# Test view toggle - list mode active\ntoggle = render_view_toggle(ViewMode.LIST, \"/toggle-view\", \"#gallery\")\nhtml = to_xml(toggle)\n# Both buttons should be present\nassert \"Grid view\" in html or \"grid_view\" in html.lower() or \"&lt;svg\" in html\n\nprint(\"render_view_toggle tests passed!\")\n\nrender_view_toggle tests passed!",
+    "crumbs": [
+      "components",
+      "Controls"
+    ]
+  },
+  {
+    "objectID": "components/controls.html#type-filter-buttons",
+    "href": "components/controls.html#type-filter-buttons",
+    "title": "Controls",
+    "section": "Type Filter Buttons",
+    "text": "Type Filter Buttons\nFilter buttons to show/hide specific file types.\n\n\nrender_type_filter_button\n\ndef render_type_filter_button(\n    file_type:FileType, # File type for this button\n    is_active:bool, # Whether this type is currently shown\n    filter_url:str, # URL for filter handler\n    hx_target:Optional=None, # HTMX target for swap\n    count:Optional=None, # Number of files of this type\n)-&gt;functools.partial(&lt;function ft_hx at 0x7f8bb898e020&gt;, 'button'): # Filter button\n\nRender a single type filter button.\n\n# Test type filter button\nbtn_elem = render_type_filter_button(\n    FileType.AUDIO, True, \"/filter\", \"#gallery\"\n)\nhtml = to_xml(btn_elem)\nassert \"&lt;button\" in html\nassert \"btn-primary\" in html  # Active\nassert \"Audio\" in html\nassert \"hx-post\" in html\n\n# Test inactive button\nbtn_elem = render_type_filter_button(\n    FileType.VIDEO, False, \"/filter\", \"#gallery\"\n)\nhtml = to_xml(btn_elem)\nassert \"btn-ghost\" in html  # Inactive\nassert \"Video\" in html\n\n# Test with count\nbtn_elem = render_type_filter_button(\n    FileType.IMAGE, True, \"/filter\", \"#gallery\", count=42\n)\nhtml = to_xml(btn_elem)\nassert \"42\" in html\nassert \"badge\" in html\n\nprint(\"render_type_filter_button tests passed!\")\n\nrender_type_filter_button tests passed!\n\n\n\n\n\nrender_type_filters\n\ndef render_type_filters(\n    available_types:List, # File types to show buttons for\n    active_types:List, # Currently active (shown) types\n    filter_url:str, # URL for filter handler\n    hx_target:Optional=None, # HTMX target for swap\n    type_counts:Optional=None, # File counts per type\n)-&gt;Any: # Type filter button group\n\nRender type filter buttons.\n\n# Test type filters\nfilters = render_type_filters(\n    available_types=[FileType.AUDIO, FileType.VIDEO, FileType.IMAGE],\n    active_types=[FileType.AUDIO, FileType.IMAGE],\n    filter_url=\"/filter\",\n    hx_target=\"#gallery\"\n)\nhtml = to_xml(filters)\nassert \"Audio\" in html\nassert \"Video\" in html\nassert \"Images\" in html\n# Should have 2 active and 1 inactive\nassert html.count(\"btn-primary\") == 2\nassert html.count(\"btn-ghost\") == 1\n\n# Test with counts\nfilters = render_type_filters(\n    available_types=[FileType.AUDIO, FileType.VIDEO],\n    active_types=[FileType.AUDIO],\n    filter_url=\"/filter\",\n    type_counts={FileType.AUDIO: 10, FileType.VIDEO: 5}\n)\nhtml = to_xml(filters)\nassert \"10\" in html\nassert \"5\" in html\n\nprint(\"render_type_filters tests passed!\")\n\nrender_type_filters tests passed!",
+    "crumbs": [
+      "components",
+      "Controls"
+    ]
+  },
+  {
+    "objectID": "components/controls.html#gallery-controls-bar",
+    "href": "components/controls.html#gallery-controls-bar",
+    "title": "Controls",
+    "section": "Gallery Controls Bar",
+    "text": "Gallery Controls Bar\nCombined controls bar with view toggle and type filters.\n\n\nrender_gallery_controls\n\ndef render_gallery_controls(\n    config:GalleryConfig, # Gallery configuration\n    current_view:ViewMode, # Current view mode\n    active_types:List, # Currently active type filters\n    toggle_view_url:str, # URL for view toggle\n    filter_url:str, # URL for type filter\n    hx_target:Optional=None, # HTMX target\n    type_counts:Optional=None, # File counts per type\n    controls_id:Optional=None, # HTML ID for controls container\n)-&gt;Any: # Controls bar component\n\nRender the gallery controls bar.\n\n# Test gallery controls\nconfig = GalleryConfig()\ncontrols = render_gallery_controls(\n    config=config,\n    current_view=ViewMode.GRID,\n    active_types=[FileType.AUDIO, FileType.VIDEO, FileType.IMAGE, FileType.DOCUMENT],\n    toggle_view_url=\"/toggle-view\",\n    filter_url=\"/filter\",\n    hx_target=\"#gallery\",\n    controls_id=\"gallery-controls\"\n)\nhtml = to_xml(controls)\nassert 'id=\"gallery-controls\"' in html\nassert 'class=\"join\"' in html  # View toggle button group\nassert \"Audio\" in html  # Type filters\nassert \"Video\" in html\n\n# Test with view toggle disabled\nconfig_no_toggle = GalleryConfig(allow_view_toggle=False)\ncontrols = render_gallery_controls(\n    config=config_no_toggle,\n    current_view=ViewMode.GRID,\n    active_types=[FileType.AUDIO],\n    toggle_view_url=\"/toggle-view\",\n    filter_url=\"/filter\"\n)\nhtml = to_xml(controls)\nassert 'class=\"join\"' not in html  # No view toggle button group\nassert \"Audio\" in html  # Type filters still present\n\nprint(\"render_gallery_controls tests passed!\")\n\nrender_gallery_controls tests passed!",
+    "crumbs": [
+      "components",
+      "Controls"
+    ]
+  },
+  {
+    "objectID": "components/grid_view.html",
+    "href": "components/grid_view.html",
+    "title": "Grid View",
+    "section": "",
+    "text": "Tailwind classes for different card sizes.",
+    "crumbs": [
+      "components",
+      "Grid View"
+    ]
+  },
+  {
+    "objectID": "components/grid_view.html#card-size-configuration",
+    "href": "components/grid_view.html#card-size-configuration",
+    "title": "Grid View",
+    "section": "",
+    "text": "Tailwind classes for different card sizes.",
+    "crumbs": [
+      "components",
+      "Grid View"
+    ]
+  },
+  {
+    "objectID": "components/grid_view.html#media-card",
+    "href": "components/grid_view.html#media-card",
+    "title": "Grid View",
+    "section": "Media Card",
+    "text": "Media Card\nIndividual card component for a media file.\n\n\nrender_media_card\n\ndef render_media_card(\n    file_info:FileInfo, # File to render\n    config:GalleryConfig, # Gallery configuration\n    index:int, # Index in the grid\n    file_url:Optional=None, # URL for thumbnail/preview\n    is_selected:bool=False, # Whether file is selected\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    hx_target:Optional=None, # HTMX target for swaps\n)-&gt;Any: # Card component\n\nRender a media file as a grid card.\n\nfrom fasthtml.common import to_xml\n\n# Test media card\nconfig = GalleryConfig()\nfile_info = FileInfo(\n    name=\"photo.jpg\", path=\"/photos/photo.jpg\", is_directory=False,\n    file_type=FileType.IMAGE, extension=\"jpg\", size=1024000\n)\n\ncard = render_media_card(\n    file_info=file_info,\n    config=config,\n    index=0,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(card)\nassert \"photo.jpg\" in html\nassert \"media-gallery-item-0\" in html\nassert \"hx-post\" in html\nassert \"JPG\" in html  # Type badge\n\n# Test with selection enabled\nselect_config = GalleryConfig(\n    selection_mode=\"single\"\n)\nfrom cjm_fasthtml_media_gallery.core.config import SelectionMode\nselect_config = GalleryConfig(selection_mode=SelectionMode.SINGLE)\ncard = render_media_card(\n    file_info=file_info,\n    config=select_config,\n    index=1,\n    is_selected=True,\n    select_url=\"/select\"\n)\nhtml = to_xml(card)\nassert \"border-primary\" in html  # Selected border\n\nprint(\"render_media_card tests passed!\")\n\nrender_media_card tests passed!",
+    "crumbs": [
+      "components",
+      "Grid View"
+    ]
+  },
+  {
+    "objectID": "components/grid_view.html#grid-view",
+    "href": "components/grid_view.html#grid-view",
+    "title": "Grid View",
+    "section": "Grid View",
+    "text": "Grid View\nComplete grid view with multiple cards.\n\n\nrender_grid_view\n\ndef render_grid_view(\n    files:List, # Files to display\n    config:GalleryConfig, # Gallery configuration\n    get_file_url:Optional=None, # Function to get file URL\n    selected_paths:Optional=None, # Currently selected paths\n    preview_url:Optional=None, # URL for preview action\n    select_url:Optional=None, # URL for selection action\n    hx_target:Optional=None, # HTMX target for swaps\n    start_index:int=0, # Starting index for IDs (for pagination)\n)-&gt;Any: # Grid view component\n\nRender a grid view of media files.\n\n# Test grid view\nconfig = GalleryConfig()\nfiles = [\n    FileInfo(name=\"photo1.jpg\", path=\"/photo1.jpg\", is_directory=False, file_type=FileType.IMAGE, extension=\"jpg\"),\n    FileInfo(name=\"song.mp3\", path=\"/song.mp3\", is_directory=False, file_type=FileType.AUDIO, extension=\"mp3\"),\n    FileInfo(name=\"video.mp4\", path=\"/video.mp4\", is_directory=False, file_type=FileType.VIDEO, extension=\"mp4\"),\n]\n\ngrid = render_grid_view(\n    files=files,\n    config=config,\n    preview_url=\"/preview\"\n)\nhtml = to_xml(grid)\nassert 'id=\"media-gallery-grid\"' in html\nassert \"grid-cols-4\" in html\nassert \"photo1.jpg\" in html\nassert \"song.mp3\" in html\nassert \"video.mp4\" in html\nassert \"media-gallery-item-0\" in html\nassert \"media-gallery-item-1\" in html\nassert \"media-gallery-item-2\" in html\n\n# Test with different column count\nfrom cjm_fasthtml_media_gallery.core.config import GridConfig\nconfig_6col = GalleryConfig(grid=GridConfig(columns=6))\ngrid = render_grid_view(files=files, config=config_6col)\nhtml = to_xml(grid)\nassert \"grid-cols-6\" in html\n\n# Test with selection\nselect_config = GalleryConfig(selection_mode=SelectionMode.MULTIPLE)\ngrid = render_grid_view(\n    files=files,\n    config=select_config,\n    selected_paths=[\"/photo1.jpg\"],\n    select_url=\"/select\"\n)\nhtml = to_xml(grid)\nassert \"border-primary\" in html  # Selected item\n\nprint(\"render_grid_view tests passed!\")\n\nrender_grid_view tests passed!",
+    "crumbs": [
+      "components",
+      "Grid View"
+    ]
+  },
+  {
+    "objectID": "components/grid_view.html#empty-state",
+    "href": "components/grid_view.html#empty-state",
+    "title": "Grid View",
+    "section": "Empty State",
+    "text": "Empty State\nComponent shown when there are no files to display.\n\n\nrender_grid_empty_state\n\ndef render_grid_empty_state(\n    message:str='No media files found', # Message to display\n)-&gt;Any: # Empty state component\n\nRender empty state for grid view.\n\n# Test empty state\nempty = render_grid_empty_state()\nhtml = to_xml(empty)\nassert \"No media files found\" in html\nassert 'id=\"media-gallery-grid\"' in html\n\n# Test with custom message\nempty = render_grid_empty_state(\"No images in this folder\")\nhtml = to_xml(empty)\nassert \"No images in this folder\" in html\n\nprint(\"render_grid_empty_state tests passed!\")\n\nrender_grid_empty_state tests passed!",
+    "crumbs": [
+      "components",
+      "Grid View"
+    ]
+  },
+  {
+    "objectID": "patterns/pagination.html",
+    "href": "patterns/pagination.html",
+    "title": "Pagination",
+    "section": "",
+    "text": "Computed pagination information.\n\n\n\n\ndef PaginationInfo(\n    total_items:int, items_per_page:int, current_page:int\n)-&gt;None:\n\nComputed pagination information.\n\n# Test PaginationInfo\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=1)\n\n# Test basic properties\nassert info.total_pages == 5  # 100/24 = 4.16, rounds up to 5\nassert info.has_prev == False\nassert info.has_next == True\nassert info.start_index == 0\nassert info.end_index == 24\nassert info.items_on_page == 24\n\n# Test middle page\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=3)\nassert info.has_prev == True\nassert info.has_next == True\nassert info.start_index == 48\nassert info.end_index == 72\n\n# Test last page\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=5)\nassert info.has_prev == True\nassert info.has_next == False\nassert info.start_index == 96\nassert info.end_index == 100\nassert info.items_on_page == 4\n\n# Test visible pages\ninfo = PaginationInfo(total_items=100, items_per_page=10, current_page=5)\nvisible = info.get_visible_pages(5)\nassert len(visible) == 5\nassert 5 in visible  # Current page\n\n# Test empty\ninfo = PaginationInfo(total_items=0, items_per_page=24, current_page=1)\nassert info.total_pages == 1\nassert info.items_on_page == 0\n\nprint(\"PaginationInfo tests passed!\")\n\nPaginationInfo tests passed!",
+    "crumbs": [
+      "patterns",
+      "Pagination"
+    ]
+  },
+  {
+    "objectID": "patterns/pagination.html#paginationinfo",
+    "href": "patterns/pagination.html#paginationinfo",
+    "title": "Pagination",
+    "section": "",
+    "text": "Computed pagination information.\n\n\n\n\ndef PaginationInfo(\n    total_items:int, items_per_page:int, current_page:int\n)-&gt;None:\n\nComputed pagination information.\n\n# Test PaginationInfo\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=1)\n\n# Test basic properties\nassert info.total_pages == 5  # 100/24 = 4.16, rounds up to 5\nassert info.has_prev == False\nassert info.has_next == True\nassert info.start_index == 0\nassert info.end_index == 24\nassert info.items_on_page == 24\n\n# Test middle page\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=3)\nassert info.has_prev == True\nassert info.has_next == True\nassert info.start_index == 48\nassert info.end_index == 72\n\n# Test last page\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=5)\nassert info.has_prev == True\nassert info.has_next == False\nassert info.start_index == 96\nassert info.end_index == 100\nassert info.items_on_page == 4\n\n# Test visible pages\ninfo = PaginationInfo(total_items=100, items_per_page=10, current_page=5)\nvisible = info.get_visible_pages(5)\nassert len(visible) == 5\nassert 5 in visible  # Current page\n\n# Test empty\ninfo = PaginationInfo(total_items=0, items_per_page=24, current_page=1)\nassert info.total_pages == 1\nassert info.items_on_page == 0\n\nprint(\"PaginationInfo tests passed!\")\n\nPaginationInfo tests passed!",
+    "crumbs": [
+      "patterns",
+      "Pagination"
+    ]
+  },
+  {
+    "objectID": "patterns/pagination.html#pagination-component",
+    "href": "patterns/pagination.html#pagination-component",
+    "title": "Pagination",
+    "section": "Pagination Component",
+    "text": "Pagination Component\nRender pagination controls.\n\n\nrender_pagination\n\ndef render_pagination(\n    info:PaginationInfo, # Pagination info\n    page_url:str, # URL for page change handler\n    hx_target:Optional=None, # HTMX target for swap\n    max_visible:int=5, # Maximum visible page buttons\n)-&gt;Any: # Pagination component\n\nRender pagination controls.\n\nfrom fasthtml.common import to_xml\n\n# Test pagination\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=3)\npagination = render_pagination(info, \"/page\", \"#gallery\")\nhtml = to_xml(pagination)\n\nassert 'id=\"media-gallery-pagination\"' in html\nassert \"join\" in html\nassert \"hx-post\" in html\n# Current page should be highlighted\nassert \"btn-primary\" in html\n\n# Test single page (no pagination)\ninfo = PaginationInfo(total_items=10, items_per_page=24, current_page=1)\npagination = render_pagination(info, \"/page\")\nassert pagination is None\n\nprint(\"render_pagination tests passed!\")\n\nrender_pagination tests passed!",
+    "crumbs": [
+      "patterns",
+      "Pagination"
+    ]
+  },
+  {
+    "objectID": "patterns/pagination.html#pagination-info-bar",
+    "href": "patterns/pagination.html#pagination-info-bar",
+    "title": "Pagination",
+    "section": "Pagination Info Bar",
+    "text": "Pagination Info Bar\nShows “Showing X-Y of Z items”.\n\n\nrender_pagination_info\n\ndef render_pagination_info(\n    info:PaginationInfo, # Pagination info\n)-&gt;Any: # Info text component\n\nRender pagination info text.\n\n# Test pagination info\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=1)\ninfo_text = render_pagination_info(info)\nhtml = to_xml(info_text)\nassert \"Showing 1-24 of 100 items\" in html\n\n# Test last page\ninfo = PaginationInfo(total_items=100, items_per_page=24, current_page=5)\ninfo_text = render_pagination_info(info)\nhtml = to_xml(info_text)\nassert \"Showing 97-100 of 100 items\" in html\n\n# Test empty\ninfo = PaginationInfo(total_items=0, items_per_page=24, current_page=1)\ninfo_text = render_pagination_info(info)\nhtml = to_xml(info_text)\nassert \"No items\" in html\n\nprint(\"render_pagination_info tests passed!\")\n\nrender_pagination_info tests passed!",
+    "crumbs": [
+      "patterns",
+      "Pagination"
+    ]
+  },
+  {
+    "objectID": "core/html_ids.html",
+    "href": "core/html_ids.html",
+    "title": "HTML IDs",
+    "section": "",
+    "text": "Default HTML IDs used by the media gallery. These can be customized via GalleryConfig if needed to avoid conflicts.\n\n\n\n\ndef GalleryHtmlIds(\n    GALLERY:str='media-gallery', CONTENT:str='media-gallery-content', CONTROLS:str='media-gallery-controls',\n    VIEW_TOGGLE:str='media-gallery-view-toggle', TYPE_FILTER:str='media-gallery-type-filter',\n    GRID:str='media-gallery-grid', GRID_ITEM_PREFIX:str='media-gallery-item-', LIST:str='media-gallery-list',\n    LIST_ITEM_PREFIX:str='media-gallery-row-', PREVIEW_MODAL:str='media-preview-modal',\n    PREVIEW_CONTENT:str='media-preview-content', PREVIEW_PLAYER:str='media-preview-player',\n    PREVIEW_INFO:str='media-preview-info', PAGINATION:str='media-gallery-pagination',\n    CURRENT_PAGE_INPUT:str='media-gallery-current-page', VIEW_MODE_INPUT:str='media-gallery-view-mode',\n    TYPE_FILTER_INPUT:str='media-gallery-type-filter-value', SELECTED_PATHS_INPUT:str='media-gallery-selected-paths',\n    PREVIEW_PATH_INPUT:str='media-gallery-preview-path'\n)-&gt;None:\n\nDefault HTML IDs for media gallery components.\n\n# Test GalleryHtmlIds\nids = GalleryHtmlIds()\n\n# Test constants\nassert ids.GALLERY == \"media-gallery\"\nassert ids.CONTENT == \"media-gallery-content\"\nassert ids.CONTROLS == \"media-gallery-controls\"\nassert ids.PREVIEW_MODAL == \"media-preview-modal\"\nassert ids.PAGINATION == \"media-gallery-pagination\"\n\n# Test grid_item_id\nassert GalleryHtmlIds.grid_item_id(0) == \"media-gallery-item-0\"\nassert GalleryHtmlIds.grid_item_id(42) == \"media-gallery-item-42\"\n\n# Test list_item_id\nassert GalleryHtmlIds.list_item_id(0) == \"media-gallery-row-0\"\nassert GalleryHtmlIds.list_item_id(99) == \"media-gallery-row-99\"\n\n# Test as_selector\nassert GalleryHtmlIds.as_selector(ids.GALLERY) == \"#media-gallery\"\nassert GalleryHtmlIds.as_selector(ids.PREVIEW_MODAL) == \"#media-preview-modal\"\n\n# Test frozen (immutable)\ntry:\n    ids.GALLERY = \"new-id\"\n    assert False, \"Should have raised FrozenInstanceError\"\nexcept Exception:\n    pass  # Expected\n\nprint(\"GalleryHtmlIds tests passed!\")\n\nGalleryHtmlIds tests passed!",
+    "crumbs": [
+      "core",
+      "HTML IDs"
+    ]
+  },
+  {
+    "objectID": "core/html_ids.html#galleryhtmlids",
+    "href": "core/html_ids.html#galleryhtmlids",
+    "title": "HTML IDs",
+    "section": "",
+    "text": "Default HTML IDs used by the media gallery. These can be customized via GalleryConfig if needed to avoid conflicts.\n\n\n\n\ndef GalleryHtmlIds(\n    GALLERY:str='media-gallery', CONTENT:str='media-gallery-content', CONTROLS:str='media-gallery-controls',\n    VIEW_TOGGLE:str='media-gallery-view-toggle', TYPE_FILTER:str='media-gallery-type-filter',\n    GRID:str='media-gallery-grid', GRID_ITEM_PREFIX:str='media-gallery-item-', LIST:str='media-gallery-list',\n    LIST_ITEM_PREFIX:str='media-gallery-row-', PREVIEW_MODAL:str='media-preview-modal',\n    PREVIEW_CONTENT:str='media-preview-content', PREVIEW_PLAYER:str='media-preview-player',\n    PREVIEW_INFO:str='media-preview-info', PAGINATION:str='media-gallery-pagination',\n    CURRENT_PAGE_INPUT:str='media-gallery-current-page', VIEW_MODE_INPUT:str='media-gallery-view-mode',\n    TYPE_FILTER_INPUT:str='media-gallery-type-filter-value', SELECTED_PATHS_INPUT:str='media-gallery-selected-paths',\n    PREVIEW_PATH_INPUT:str='media-gallery-preview-path'\n)-&gt;None:\n\nDefault HTML IDs for media gallery components.\n\n# Test GalleryHtmlIds\nids = GalleryHtmlIds()\n\n# Test constants\nassert ids.GALLERY == \"media-gallery\"\nassert ids.CONTENT == \"media-gallery-content\"\nassert ids.CONTROLS == \"media-gallery-controls\"\nassert ids.PREVIEW_MODAL == \"media-preview-modal\"\nassert ids.PAGINATION == \"media-gallery-pagination\"\n\n# Test grid_item_id\nassert GalleryHtmlIds.grid_item_id(0) == \"media-gallery-item-0\"\nassert GalleryHtmlIds.grid_item_id(42) == \"media-gallery-item-42\"\n\n# Test list_item_id\nassert GalleryHtmlIds.list_item_id(0) == \"media-gallery-row-0\"\nassert GalleryHtmlIds.list_item_id(99) == \"media-gallery-row-99\"\n\n# Test as_selector\nassert GalleryHtmlIds.as_selector(ids.GALLERY) == \"#media-gallery\"\nassert GalleryHtmlIds.as_selector(ids.PREVIEW_MODAL) == \"#media-preview-modal\"\n\n# Test frozen (immutable)\ntry:\n    ids.GALLERY = \"new-id\"\n    assert False, \"Should have raised FrozenInstanceError\"\nexcept Exception:\n    pass  # Expected\n\nprint(\"GalleryHtmlIds tests passed!\")\n\nGalleryHtmlIds tests passed!",
+    "crumbs": [
+      "core",
+      "HTML IDs"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "cjm-fasthtml-media-gallery",
+    "section": "",
+    "text": "pip install cjm_fasthtml_media_gallery",
+    "crumbs": [
+      "cjm-fasthtml-media-gallery"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "cjm-fasthtml-media-gallery",
+    "section": "",
+    "text": "pip install cjm_fasthtml_media_gallery",
+    "crumbs": [
+      "cjm-fasthtml-media-gallery"
+    ]
+  },
+  {
+    "objectID": "index.html#project-structure",
+    "href": "index.html#project-structure",
+    "title": "cjm-fasthtml-media-gallery",
+    "section": "Project Structure",
+    "text": "Project Structure\nnbs/\n├── components/ (6)\n│   ├── controls.ipynb   # Gallery control components for view toggle and type filtering.\n│   ├── gallery.ipynb    # Main gallery component that combines controls, views, and preview.\n│   ├── grid_view.ipynb  # Grid layout component for displaying media files as cards.\n│   ├── list_view.ipynb  # Table layout component for displaying media files as rows.\n│   ├── players.ipynb    # Media player components for video, audio, image, and document preview.\n│   └── preview.ipynb    # Preview modal component for viewing media files.\n├── core/ (3)\n│   ├── config.ipynb    # Configuration dataclasses and enums for the media gallery.\n│   ├── html_ids.ipynb  # HTML ID constants for HTMX targeting in the media gallery.\n│   └── icons.ipynb     # Media type icon mappings and badge color definitions for the gallery.\n├── patterns/ (1)\n│   └── pagination.ipynb  # Pagination utilities and components for the media gallery.\n├── routes/ (1)\n│   └── handlers.ipynb  # Route handlers and router initialization for the media gallery.\n└── serving/ (1)\n    └── mounter.ipynb  # Mounts directories as static files for serving through the web server.\nTotal: 12 notebooks across 5 directories",
+    "crumbs": [
+      "cjm-fasthtml-media-gallery"
+    ]
+  },
+  {
+    "objectID": "index.html#module-dependencies",
+    "href": "index.html#module-dependencies",
+    "title": "cjm-fasthtml-media-gallery",
+    "section": "Module Dependencies",
+    "text": "Module Dependencies\ngraph LR\n    components_controls[components.controls&lt;br/&gt;Controls]\n    components_gallery[components.gallery&lt;br/&gt;Gallery]\n    components_grid_view[components.grid_view&lt;br/&gt;Grid View]\n    components_list_view[components.list_view&lt;br/&gt;List View]\n    components_players[components.players&lt;br/&gt;Players]\n    components_preview[components.preview&lt;br/&gt;Preview]\n    core_config[core.config&lt;br/&gt;Config]\n    core_html_ids[core.html_ids&lt;br/&gt;HTML IDs]\n    core_icons[core.icons&lt;br/&gt;Icons]\n    patterns_pagination[patterns.pagination&lt;br/&gt;Pagination]\n    routes_handlers[routes.handlers&lt;br/&gt;Handlers]\n    serving_mounter[serving.mounter&lt;br/&gt;Mounter]\n\n    components_controls --&gt; core_config\n    components_controls --&gt; core_icons\n    components_gallery --&gt; components_list_view\n    components_gallery --&gt; core_config\n    components_gallery --&gt; patterns_pagination\n    components_gallery --&gt; components_controls\n    components_gallery --&gt; components_grid_view\n    components_gallery --&gt; core_html_ids\n    components_gallery --&gt; components_preview\n    components_grid_view --&gt; core_config\n    components_grid_view --&gt; core_html_ids\n    components_grid_view --&gt; core_icons\n    components_list_view --&gt; core_config\n    components_list_view --&gt; core_html_ids\n    components_list_view --&gt; core_icons\n    components_preview --&gt; core_config\n    components_preview --&gt; core_html_ids\n    components_preview --&gt; core_icons\n    components_preview --&gt; components_players\n    patterns_pagination --&gt; core_config\n    patterns_pagination --&gt; core_html_ids\n    patterns_pagination --&gt; core_icons\n    routes_handlers --&gt; components_preview\n    routes_handlers --&gt; serving_mounter\n    routes_handlers --&gt; core_config\n    routes_handlers --&gt; components_players\n    routes_handlers --&gt; components_gallery\n27 cross-module dependencies detected",
+    "crumbs": [
+      "cjm-fasthtml-media-gallery"
+    ]
+  },
+  {
+    "objectID": "index.html#cli-reference",
+    "href": "index.html#cli-reference",
+    "title": "cjm-fasthtml-media-gallery",
+    "section": "CLI Reference",
+    "text": "CLI Reference\nNo CLI commands found in this project.",
+    "crumbs": [
+      "cjm-fasthtml-media-gallery"
+    ]
+  },
+  {
+    "objectID": "index.html#module-overview",
+    "href": "index.html#module-overview",
+    "title": "cjm-fasthtml-media-gallery",
+    "section": "Module Overview",
+    "text": "Module Overview\nDetailed documentation for each module in the project:\n\nConfig (config.ipynb)\n\nConfiguration dataclasses and enums for the media gallery.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.core.config import (\n    ViewMode,\n    SelectionMode,\n    CardSize,\n    ListColumn,\n    GridConfig,\n    ListConfig,\n    FilterConfig,\n    PaginationConfig,\n    PreviewConfig,\n    GalleryCallbacks,\n    GalleryConfig\n)\n\n\nClasses\nclass ViewMode(str, Enum):\n    \"Display modes for media gallery.\"\nclass SelectionMode(str, Enum):\n    \"File selection modes.\"\nclass CardSize(str, Enum):\n    \"Card size presets for grid view.\"\nclass ListColumn(str, Enum):\n    \"Available columns for list view.\"\n@dataclass\nclass GridConfig:\n    \"Grid view display configuration.\"\n    \n    columns: int = 4  # Number of columns in grid\n    card_size: CardSize = CardSize.MEDIUM  # Card size preset\n    show_thumbnails: bool = True  # Show image/video thumbnails\n    show_file_size: bool = True  # Show file size on cards\n    show_file_type: bool = True  # Show file type badge\n@dataclass\nclass ListConfig:\n    \"List view display configuration.\"\n    \n    columns: List[ListColumn] = field(...)\n    show_icons: bool = True  # Show file type icons\n    striped: bool = False  # Zebra striping for rows\n    compact: bool = False  # Compact row height\n@dataclass\nclass FilterConfig:\n    \"Filter configuration for media gallery.\"\n    \n    enabled_types: List[FileType] = field(...)\n    allow_type_filter: bool = True  # Show type filter controls\n    show_hidden: bool = False  # Show hidden files\n    custom_filter: Optional[Callable[[FileInfo], bool]]  # Custom filter function\n    \n    def matches(\n            self,\n            file_info: FileInfo  # File to check against filter\n        ) -&gt; bool:  # True if file passes filter\n        \"Check if a file matches the filter criteria.\"\n@dataclass\nclass PaginationConfig:\n    \"Pagination configuration.\"\n    \n    items_per_page: int = 24  # Items to show per page\n    show_pagination: bool = True  # Show pagination controls\n    show_page_size_selector: bool = False  # Allow changing page size\n    page_size_options: List[int] = field(...)\n@dataclass\nclass PreviewConfig:\n    \"Preview modal configuration.\"\n    \n    enable_preview: bool = True  # Enable preview modal on click\n    show_download_button: bool = True  # Show download button in preview\n    show_info_panel: bool = True  # Show file info in preview\n    show_navigation: bool = True  # Show prev/next navigation\n    autoplay_video: bool = False  # Autoplay videos in preview\n    autoplay_audio: bool = False  # Autoplay audio in preview\n@dataclass\nclass GalleryCallbacks:\n    \"Event callbacks for gallery customization.\"\n    \n    on_select: Optional[Callable[[str], None]]  # Called when file selected\n    on_selection_change: Optional[Callable[[List[str]], None]]  # Called when selection changes\n    on_preview: Optional[Callable[[str], None]]  # Called when preview opens\n    on_download: Optional[Callable[[str], None]]  # Called when download clicked\n    validate_selection: Optional[Callable[[str], Tuple[bool, str]]]  # Validate before select\n@dataclass\nclass GalleryConfig:\n    \"Main configuration for media gallery.\"\n    \n    default_view: ViewMode = ViewMode.GRID  # Default view mode\n    allow_view_toggle: bool = True  # Allow user to toggle view mode\n    grid: GridConfig = field(...)\n    list: ListConfig = field(...)\n    filter: FilterConfig = field(...)\n    pagination: PaginationConfig = field(...)\n    preview: PreviewConfig = field(...)\n    selection_mode: SelectionMode = SelectionMode.NONE\n    max_selections: Optional[int]  # For MULTIPLE mode\n    gallery_id: str = 'media-gallery'\n    content_id: str = 'media-gallery-content'\n    controls_id: str = 'media-gallery-controls'\n    preview_modal_id: str = 'media-preview-modal'\n    keyboard_config: Optional[Any]\n    \n    def can_select(\n            self,\n            file_info: FileInfo  # File to check\n        ) -&gt; bool:  # True if file can be selected\n        \"Check if a file can be selected based on config.\"\n\n\n\nControls (controls.ipynb)\n\nGallery control components for view toggle and type filtering.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.components.controls import (\n    FILE_TYPE_LABELS,\n    render_view_toggle,\n    render_type_filter_button,\n    render_type_filters,\n    render_gallery_controls\n)\n\n\nFunctions\ndef render_view_toggle(\n    current_mode: ViewMode,           # Current view mode\n    toggle_url: str,                  # URL for toggle handler\n    hx_target: Optional[str] = None,  # HTMX target for swap\n) -&gt; Any:  # View toggle button group\n    \"Render view mode toggle buttons.\"\ndef render_type_filter_button(\n    file_type: FileType,              # File type for this button\n    is_active: bool,                  # Whether this type is currently shown\n    filter_url: str,                  # URL for filter handler\n    hx_target: Optional[str] = None,  # HTMX target for swap\n    count: Optional[int] = None,      # Number of files of this type\n) -&gt; Button:  # Filter button\n    \"Render a single type filter button.\"\ndef render_type_filters(\n    available_types: List[FileType],  # File types to show buttons for\n    active_types: List[FileType],     # Currently active (shown) types\n    filter_url: str,                  # URL for filter handler\n    hx_target: Optional[str] = None,  # HTMX target for swap\n    type_counts: Optional[dict[FileType, int]] = None,  # File counts per type\n) -&gt; Any:  # Type filter button group\n    \"Render type filter buttons.\"\ndef render_gallery_controls(\n    config: GalleryConfig,            # Gallery configuration\n    current_view: ViewMode,           # Current view mode\n    active_types: List[FileType],     # Currently active type filters\n    toggle_view_url: str,             # URL for view toggle\n    filter_url: str,                  # URL for type filter\n    hx_target: Optional[str] = None,  # HTMX target\n    type_counts: Optional[dict[FileType, int]] = None,  # File counts per type\n    controls_id: Optional[str] = None,  # HTML ID for controls container\n) -&gt; Any:  # Controls bar component\n    \"Render the gallery controls bar.\"\n\n\nVariables\nFILE_TYPE_LABELS: dict[FileType, str]\n\n\n\nGallery (gallery.ipynb)\n\nMain gallery component that combines controls, views, and preview.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.components.gallery import (\n    render_gallery_content,\n    render_media_gallery\n)\n\n\nFunctions\ndef render_gallery_content(\n    files: List[FileInfo],            # Files to display\n    config: GalleryConfig,            # Gallery configuration\n    view_mode: ViewMode,              # Current view mode\n    get_file_url: Optional[Callable[[str], str]] = None,  # Function to get file URL\n    selected_paths: Optional[List[str]] = None,  # Currently selected paths\n    preview_url: Optional[str] = None,  # URL for preview action\n    select_url: Optional[str] = None,   # URL for selection action\n    hx_target: Optional[str] = None,    # HTMX target for swaps\n    start_index: int = 0,               # Starting index (for pagination)\n) -&gt; Any:  # Content component\n    \"Render the gallery content (grid or list view).\"\ndef render_media_gallery(\n    files: List[FileInfo],            # Files to display\n    config: GalleryConfig,            # Gallery configuration\n    view_mode: Optional[ViewMode] = None,  # Current view mode (defaults to config)\n    active_types: Optional[List[FileType]] = None,  # Active type filters\n    get_file_url: Optional[Callable[[str], str]] = None,  # Function to get file URL\n    selected_paths: Optional[List[str]] = None,  # Currently selected paths\n    # Route URLs\n    toggle_view_url: Optional[str] = None,  # URL for view toggle\n    filter_url: Optional[str] = None,       # URL for type filter\n    preview_url: Optional[str] = None,      # URL for preview action\n    select_url: Optional[str] = None,       # URL for selection action\n    page_url: Optional[str] = None,         # URL for pagination\n    # Pagination\n    current_page: int = 1,                  # Current page number\n    total_items: Optional[int] = None,      # Total items (for pagination)\n    type_counts: Optional[dict[FileType, int]] = None,  # File counts per type\n) -&gt; Any:  # Complete gallery component\n    \"Render the complete media gallery.\"\n\n\n\nGrid View (grid_view.ipynb)\n\nGrid layout component for displaying media files as cards.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.components.grid_view import (\n    CARD_SIZE_CLASSES,\n    render_media_card,\n    render_grid_view,\n    render_grid_empty_state\n)\n\n\nFunctions\ndef render_media_card(\n    file_info: FileInfo,              # File to render\n    config: GalleryConfig,            # Gallery configuration\n    index: int,                       # Index in the grid\n    file_url: Optional[str] = None,   # URL for thumbnail/preview\n    is_selected: bool = False,        # Whether file is selected\n    preview_url: Optional[str] = None,  # URL for preview action\n    select_url: Optional[str] = None,   # URL for selection action\n    hx_target: Optional[str] = None,    # HTMX target for swaps\n) -&gt; Any:  # Card component\n    \"Render a media file as a grid card.\"\ndef _render_thumbnail_area(\n    file_info: FileInfo,              # File info\n    config: GalleryConfig,            # Gallery config\n    file_url: Optional[str],          # URL for image thumbnail\n    size_config: dict,                # Size configuration\n) -&gt; Any:  # Thumbnail area component\n    \"Render the thumbnail/icon area of a card.\"\ndef _render_info_area(\n    file_info: FileInfo,              # File info\n    config: GalleryConfig,            # Gallery config\n) -&gt; Any:  # Info area component\n    \"Render the file info area of a card.\"\ndef _render_selection_indicator(\n    is_selected: bool,                # Current selection state\n    select_url: Optional[str],        # URL for selection action\n    file_path: str,                   # File path for HTMX\n    hx_target: Optional[str],         # HTMX target\n) -&gt; Any:  # Selection indicator component\n    \"Render the selection indicator checkbox.\"\ndef _render_type_badge(\n    file_info: FileInfo,              # File info\n) -&gt; Any:  # Type badge component\n    \"Render the file type badge.\"\ndef render_grid_view(\n    files: List[FileInfo],            # Files to display\n    config: GalleryConfig,            # Gallery configuration\n    get_file_url: Optional[callable] = None,  # Function to get file URL\n    selected_paths: Optional[List[str]] = None,  # Currently selected paths\n    preview_url: Optional[str] = None,  # URL for preview action\n    select_url: Optional[str] = None,   # URL for selection action\n    hx_target: Optional[str] = None,    # HTMX target for swaps\n    start_index: int = 0,               # Starting index for IDs (for pagination)\n) -&gt; Any:  # Grid view component\n    \"Render a grid view of media files.\"\ndef render_grid_empty_state(\n    message: str = \"No media files found\",  # Message to display\n) -&gt; Any:  # Empty state component\n    \"Render empty state for grid view.\"\n\n\nVariables\nCARD_SIZE_CLASSES: dict[CardSize, dict[str, str]]\n\n\n\nHandlers (handlers.ipynb)\n\nRoute handlers and router initialization for the media gallery.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.routes.handlers import (\n    GalleryState,\n    init_router\n)\n\n\nFunctions\ndef _handle_toggle_view(\n    state_getter: Callable[[], GalleryState],  # Function to get current state\n    state_setter: Callable[[GalleryState], None],  # Function to save state\n    view_mode: str,                           # New view mode\n    render_fn: Callable[[GalleryState], Any], # Function to render gallery\n) -&gt; Any:  # Rendered gallery component\n    \"Handle view mode toggle.\"\ndef _handle_filter_type(\n    config: GalleryConfig,                    # Gallery configuration\n    state_getter: Callable[[], GalleryState], # Function to get current state\n    state_setter: Callable[[GalleryState], None],  # Function to save state\n    file_type: str,                           # File type to toggle\n    toggle: str,                              # \"true\" to toggle, else set exclusively\n    render_fn: Callable[[GalleryState], Any], # Function to render gallery\n) -&gt; Any:  # Rendered gallery component\n    \"Handle type filter change.\"\ndef _handle_select(\n    config: GalleryConfig,                    # Gallery configuration\n    state_getter: Callable[[], GalleryState], # Function to get current state\n    state_setter: Callable[[GalleryState], None],  # Function to save state\n    callbacks: Optional[GalleryCallbacks],    # Optional callbacks\n    path: str,                                # File path to select/deselect\n    render_fn: Callable[[GalleryState], Any], # Function to render gallery\n) -&gt; Any:  # Rendered gallery component\n    \"Handle file selection.\"\ndef _handle_page(\n    state_getter: Callable[[], GalleryState], # Function to get current state\n    state_setter: Callable[[GalleryState], None],  # Function to save state\n    page: int,                                # New page number\n    render_fn: Callable[[GalleryState], Any], # Function to render gallery\n) -&gt; Any:  # Rendered gallery component\n    \"Handle page change.\"\ndef _handle_preview(\n    files_getter: Callable[[], List[FileInfo]],  # Function to get files\n    state_getter: Callable[[], GalleryState],  # Function to get current state\n    config: GalleryConfig,  # Gallery configuration\n    mounter: DirectoryMounter,  # File URL mounter\n    callbacks: Optional[GalleryCallbacks],  # Optional callbacks\n    path: str,  # File path to preview\n    prev_url: str,  # URL for previous handler\n    next_url: str,  # URL for next handler\n) -&gt; Any:  # Preview content\n    \"Handle preview request.\"\ndef _handle_preview_nav(\n    files_getter: Callable[[], List[FileInfo]], # Function to get files\n    state_getter: Callable[[], GalleryState],   # Function to get current state\n    config: GalleryConfig,                    # Gallery configuration\n    mounter: DirectoryMounter,                # File URL mounter\n    callbacks: Optional[GalleryCallbacks],    # Optional callbacks\n    current_path: str,                        # Current file path\n    direction: int,                           # -1 for prev, +1 for next\n    prev_url: str,                            # URL for previous handler\n    next_url: str,                            # URL for next handler\n) -&gt; Any:  # Preview content\n    \"Handle preview navigation.\"\ndef init_router(\n    config: GalleryConfig,                              # Gallery configuration\n    files_getter: Callable[[], List[FileInfo]],         # Function to get files\n    mounter: DirectoryMounter,                          # File URL mounter\n    state_getter: Callable[[], GalleryState],           # Function to get current state\n    state_setter: Callable[[GalleryState], None],       # Function to save state\n    route_prefix: str = \"/gallery\",                     # Route prefix for all gallery routes\n    callbacks: Optional[GalleryCallbacks] = None,       # Optional callbacks\n) -&gt; APIRouter:  # Configured APIRouter with all gallery routes\n    \"Initialize and return an APIRouter with all gallery routes.\"\n\n\nClasses\n@dataclass\nclass GalleryState:\n    \"State for the media gallery.\"\n    \n    view_mode: ViewMode = ViewMode.GRID  # Current view mode\n    current_page: int = 1  # Current page\n    active_types: List[FileType] = field(...)  # Active type filters\n    selected_paths: List[str] = field(...)  # Selected file paths\n    preview_path: Optional[str]  # Currently previewed file\n    \n    def to_dict(self) -&gt; dict:  # Serializable dictionary\n            \"\"\"Convert to serializable dictionary.\"\"\"\n            return {\n                \"view_mode\": self.view_mode.value,\n        \"Convert to serializable dictionary.\"\n    \n    def from_dict(\n            cls,\n            data: dict  # Dictionary data\n        ) -&gt; \"GalleryState\":  # GalleryState instance\n        \"Create from dictionary.\"\n\n\n\nHTML IDs (html_ids.ipynb)\n\nHTML ID constants for HTMX targeting in the media gallery.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.core.html_ids import (\n    GalleryHtmlIds\n)\n\n\nClasses\nclass GalleryHtmlIds:\n    \"Default HTML IDs for media gallery components.\"\n    \n    def grid_item_id(\n            cls,\n            index: int  # Item index in the grid\n        ) -&gt; str:  # HTML ID for the grid item\n        \"Generate grid item ID for a specific index.\"\n    \n    def list_item_id(\n            cls,\n            index: int  # Item index in the list\n        ) -&gt; str:  # HTML ID for the list row\n        \"Generate list item ID for a specific index.\"\n    \n    def as_selector(\n            cls,\n            html_id: str  # HTML ID\n        ) -&gt; str:  # CSS selector for the ID\n        \"Convert HTML ID to CSS selector.\"\n\n\n\nIcons (icons.ipynb)\n\nMedia type icon mappings and badge color definitions for the gallery.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.core.icons import (\n    MEDIA_TYPE_ICONS,\n    GALLERY_ICONS,\n    MEDIA_TYPE_BADGE_COLORS,\n    MEDIA_TYPE_TEXT_COLORS,\n    get_media_type_icon,\n    get_gallery_icon\n)\n\n\nFunctions\ndef get_media_type_icon(\n    file_type: FileType,  # File type to get icon for\n    size: int = 4,        # Icon size (Tailwind scale)\n    with_color: bool = True  # Apply semantic color\n) -&gt; Any:  # Lucide icon component\n    \"Get the appropriate icon for a file type.\"\ndef get_gallery_icon(\n    icon_key: str,        # Key from GALLERY_ICONS\n    size: int = 4,        # Icon size (Tailwind scale)\n    cls: str = \"\"         # Additional CSS classes\n) -&gt; Any:  # Lucide icon component\n    \"Get a gallery UI icon by key.\"\n\n\nVariables\nMEDIA_TYPE_ICONS: Dict[FileType, str]\nGALLERY_ICONS: Dict[str, str]\nMEDIA_TYPE_BADGE_COLORS: Dict[FileType, str]\nMEDIA_TYPE_TEXT_COLORS: Dict[FileType, str]\n\n\n\nList View (list_view.ipynb)\n\nTable layout component for displaying media files as rows.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.components.list_view import (\n    COLUMN_LABELS,\n    render_list_header,\n    render_list_row,\n    render_list_view,\n    render_list_empty_state\n)\n\n\nFunctions\ndef render_list_header(\n    config: GalleryConfig,            # Gallery configuration\n    show_selection: bool = False,     # Show selection checkbox column\n) -&gt; Thead:  # Table header\n    \"Render the table header row.\"\ndef render_list_row(\n    file_info: FileInfo,              # File to render\n    config: GalleryConfig,            # Gallery configuration\n    index: int,                       # Index in the list\n    is_selected: bool = False,        # Whether file is selected\n    preview_url: Optional[str] = None,  # URL for preview action\n    select_url: Optional[str] = None,   # URL for selection action\n    hx_target: Optional[str] = None,    # HTMX target for swaps\n) -&gt; Tr:  # Table row\n    \"Render a media file as a table row.\"\ndef _render_cell(\n    file_info: FileInfo,              # File info\n    column: ListColumn,               # Column to render\n    config: GalleryConfig,            # Gallery config\n) -&gt; Td:  # Table cell\n    \"Render a single table cell.\"\ndef render_list_view(\n    files: List[FileInfo],            # Files to display\n    config: GalleryConfig,            # Gallery configuration\n    selected_paths: Optional[List[str]] = None,  # Currently selected paths\n    preview_url: Optional[str] = None,  # URL for preview action\n    select_url: Optional[str] = None,   # URL for selection action\n    hx_target: Optional[str] = None,    # HTMX target for swaps\n    start_index: int = 0,               # Starting index for IDs (for pagination)\n) -&gt; Any:  # List view component\n    \"Render a list view of media files.\"\ndef render_list_empty_state(\n    message: str = \"No media files found\",  # Message to display\n) -&gt; Any:  # Empty state component\n    \"Render empty state for list view.\"\n\n\nVariables\nCOLUMN_LABELS: dict[ListColumn, str]\n\n\n\nMounter (mounter.ipynb)\n\nMounts directories as static files for serving through the web server.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.serving.mounter import (\n    DirectoryMounter\n)\n\n\nFunctions\n@patch\ndef mount(\n    self: DirectoryMounter,\n    app,  # FastHTML/Starlette application instance\n    directories: List[str]  # List of directory paths to mount\n) -&gt; None\n    \"Mount directories to app for static file serving.\"\n@patch\ndef get_url(\n    self: DirectoryMounter,\n    file_path: str  # Full path to the file\n) -&gt; Optional[str]:  # URL to access the file, or None if not in a mounted directory\n    \"Get URL for a file based on mounted directories.\"\n@patch\ndef is_mounted(\n    self: DirectoryMounter,\n    directory: str  # Directory path to check\n) -&gt; bool:  # True if the directory is mounted\n    \"Check if a directory is currently mounted.\"\n@patch\ndef get_mounted_directories(\n    self: DirectoryMounter\n) -&gt; List[str]:  # List of mounted directory paths\n    \"Get list of currently mounted directories.\"\n@patch\ndef unmount_all(\n    self: DirectoryMounter\n) -&gt; None\n    \"Remove all mounts from this instance.\"\n@patch\ndef _mount_directory(\n    self: DirectoryMounter, \n    app,  # FastHTML/Starlette application instance\n    directory: str  # Directory path to mount\n) -&gt; None\n    \"Mount a single directory.\"\n@patch\ndef _generate_prefix(\n    self: DirectoryMounter, \n    directory: str  # Directory path\n) -&gt; str:  # Route prefix string (e.g., \"mg_static_abc12345\")\n    \"Generate a unique route prefix for a directory using MD5 hash.\"\n@patch\ndef _remove_existing_mounts(\n    self: DirectoryMounter, \n    app  # FastHTML/Starlette application instance\n) -&gt; None\n    \"Remove existing mounts matching this mounter's prefix pattern.\"\n@patch\ndef create_url_getter(\n    self: DirectoryMounter\n) -&gt; callable:  # Function that converts path to URL\n    \"Create a URL getter function for use with gallery components.\"\n\n\nClasses\nclass DirectoryMounter:\n    def __init__(self):\n        \"\"\"Initialize the mounter with empty state.\"\"\"\n        self._mounted: Dict[str, str] = {}  # directory -&gt; route_prefix\n    \"Mounts directories for static file serving with instance-level state.\"\n    \n    def __init__(self):\n            \"\"\"Initialize the mounter with empty state.\"\"\"\n            self._mounted: Dict[str, str] = {}  # directory -&gt; route_prefix\n        \"Initialize the mounter with empty state.\"\n\n\n\nPagination (pagination.ipynb)\n\nPagination utilities and components for the media gallery.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.patterns.pagination import (\n    PaginationInfo,\n    render_pagination,\n    render_pagination_info\n)\n\n\nFunctions\ndef render_pagination(\n    info: PaginationInfo,             # Pagination info\n    page_url: str,                    # URL for page change handler\n    hx_target: Optional[str] = None,  # HTMX target for swap\n    max_visible: int = 5,             # Maximum visible page buttons\n) -&gt; Any:  # Pagination component\n    \"Render pagination controls.\"\ndef _page_button(\n    content: Any,                     # Button content\n    page: int,                        # Page number\n    page_url: str,                    # URL for page handler\n    disabled: bool = False,           # Disable button\n    is_current: bool = False,         # Is this the current page\n    hx_target: Optional[str] = None,  # HTMX target\n    title: Optional[str] = None,      # Button title\n) -&gt; Button:  # Page button\n    \"Render a single page button.\"\ndef render_pagination_info(\n    info: PaginationInfo,  # Pagination info\n) -&gt; Any:  # Info text component\n    \"Render pagination info text.\"\n\n\nClasses\n@dataclass\nclass PaginationInfo:\n    \"Computed pagination information.\"\n    \n    total_items: int  # Total number of items\n    items_per_page: int  # Items per page\n    current_page: int  # Current page (1-indexed)\n    \n    def total_pages(self) -&gt; int:  # Total number of pages\n            \"\"\"Calculate total pages.\"\"\"\n            if self.total_items == 0\n        \"Calculate total pages.\"\n    \n    def has_prev(self) -&gt; bool:  # True if there's a previous page\n            \"\"\"Check if previous page exists.\"\"\"\n            return self.current_page &gt; 1\n        \n        @property\n        def has_next(self) -&gt; bool:  # True if there's a next page\n        \"Check if previous page exists.\"\n    \n    def has_next(self) -&gt; bool:  # True if there's a next page\n            \"\"\"Check if next page exists.\"\"\"\n            return self.current_page &lt; self.total_pages\n        \n        @property\n        def start_index(self) -&gt; int:  # 0-based start index for current page\n        \"Check if next page exists.\"\n    \n    def start_index(self) -&gt; int:  # 0-based start index for current page\n            \"\"\"Get start index for current page.\"\"\"\n            return (self.current_page - 1) * self.items_per_page\n        \n        @property\n        def end_index(self) -&gt; int:  # 0-based end index (exclusive)\n        \"Get start index for current page.\"\n    \n    def end_index(self) -&gt; int:  # 0-based end index (exclusive)\n            \"\"\"Get end index for current page.\"\"\"\n            return min(self.start_index + self.items_per_page, self.total_items)\n        \n        @property\n        def items_on_page(self) -&gt; int:  # Number of items on current page\n        \"Get end index for current page.\"\n    \n    def items_on_page(self) -&gt; int:  # Number of items on current page\n            \"\"\"Get number of items on current page.\"\"\"\n            return self.end_index - self.start_index\n        \n        def get_visible_pages(\n            self,\n            max_visible: int = 5  # Maximum visible page buttons\n        ) -&gt; List[int]:  # List of page numbers to show\n        \"Get number of items on current page.\"\n    \n    def get_visible_pages(\n            self,\n            max_visible: int = 5  # Maximum visible page buttons\n        ) -&gt; List[int]:  # List of page numbers to show\n        \"Get list of page numbers to display.\"\n\n\n\nPlayers (players.ipynb)\n\nMedia player components for video, audio, image, and document preview.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.components.players import (\n    TEXT_PREVIEWABLE_EXTENSIONS,\n    is_text_previewable,\n    read_text_content,\n    render_video_player,\n    render_audio_player,\n    render_image_viewer,\n    render_text_viewer,\n    render_document_preview,\n    render_media_player\n)\n\n\nFunctions\ndef is_text_previewable(\n    file_info: FileInfo,  # File to check\n) -&gt; bool:  # True if file can be previewed as text\n    \"Check if a file can be previewed as text content.\"\ndef read_text_content(\n    file_path: str,  # Path to the file\n    max_size: int = 10 * 1024 * 1024,  # Maximum file size in bytes (default 10MB)\n) -&gt; Tuple[Optional[str], Optional[str]]:  # (content, error_message)\n    \"Read text file content with encoding fallback.\"\ndef render_video_player(\n    file_url: str,                    # URL to the video file\n    file_info: Optional[FileInfo] = None,  # File metadata for MIME type\n    autoplay: bool = False,           # Autoplay video on load\n    loop: bool = False,               # Loop video playback\n    muted: bool = False,              # Start muted\n    poster: Optional[str] = None,     # Poster image URL\n    cls: str = \"\",                    # Additional CSS classes\n) -&gt; Any:  # Video element\n    \"Render an HTML5 video player.\"\ndef render_audio_player(\n    file_url: str,                    # URL to the audio file\n    file_info: Optional[FileInfo] = None,  # File metadata for MIME type\n    autoplay: bool = False,           # Autoplay audio on load\n    loop: bool = False,               # Loop audio playback\n    cls: str = \"\",                    # Additional CSS classes\n) -&gt; Any:  # Audio element container\n    \"Render an HTML5 audio player.\"\ndef render_image_viewer(\n    file_url: str,                    # URL to the image file\n    file_info: Optional[FileInfo] = None,  # File metadata for alt text\n    alt: Optional[str] = None,        # Alt text (uses filename if not provided)\n    cls: str = \"\",                    # Additional CSS classes\n) -&gt; Any:  # Image element\n    \"Render an image viewer.\"\ndef render_text_viewer(\n    \"Render a scrollable text viewer.\"\ndef render_document_preview(\n    file_url: str,                    # URL to the document file\n    file_info: Optional[FileInfo] = None,  # File metadata\n    cls: str = \"\",                    # Additional CSS classes\n) -&gt; Any:  # Document preview element\n    \"Render a document preview.\"\ndef render_media_player(\n    file_url: str,  # URL to the media file\n    file_info: FileInfo,  # File metadata\n    autoplay: bool = False,  # Autoplay audio/video\n    text_content: Optional[str] = None,  # Pre-read text content for text files\n    text_error: Optional[str] = None,  # Error message if text reading failed\n    cls: str = \"\",  # Additional CSS classes\n) -&gt; Any:  # Media player component\n    \"Render the appropriate media player based on file type.\"\n\n\nVariables\nTEXT_PREVIEWABLE_EXTENSIONS: Set[str]\n\n\n\nPreview (preview.ipynb)\n\nPreview modal component for viewing media files.\n\n\nImport\nfrom cjm_fasthtml_media_gallery.components.preview import (\n    render_preview_content,\n    render_preview_modal\n)\n\n\nFunctions\ndef _render_preview_header(\n    file_info: FileInfo,              # File being previewed\n    config: PreviewConfig,            # Preview configuration\n) -&gt; Any:  # Header component\n    \"Render the preview modal header.\"\ndef _render_info_panel(\n    file_info: FileInfo,              # File being previewed\n) -&gt; Any:  # Info panel component\n    \"Render the file info panel.\"\ndef _render_preview_footer(\n    file_info: FileInfo,              # File being previewed\n    file_url: str,                    # URL to the file\n    config: PreviewConfig,            # Preview configuration\n    modal_id: str,                    # Modal ID for HTMX targeting\n    prev_url: Optional[str] = None,   # URL for previous file\n    next_url: Optional[str] = None,   # URL for next file\n    has_prev: bool = False,           # Whether there's a previous file\n    has_next: bool = False,           # Whether there's a next file\n) -&gt; Any:  # Footer component\n    \"Render the preview modal footer.\"\ndef render_preview_content(\n    file_info: FileInfo,  # File to preview\n    file_url: str,  # URL to the file\n    config: GalleryConfig,  # Gallery configuration\n    prev_url: Optional[str] = None,  # URL for previous file handler\n    next_url: Optional[str] = None,  # URL for next file handler\n    has_prev: bool = False,  # Whether there's a previous file\n    has_next: bool = False,  # Whether there's a next file\n    modal_id: Optional[str] = None,  # Modal ID to show (for auto-show script)\n    text_content: Optional[str] = None,  # Pre-read text content for text files\n    text_error: Optional[str] = None,  # Error message if text reading failed\n) -&gt; Any:  # Preview modal content with auto-show script\n    \"Render the preview modal content with script to show the modal.\"\ndef render_preview_modal(\n    modal_id: str = GalleryHtmlIds.PREVIEW_MODAL,  # Modal ID\n) -&gt; Dialog:  # Preview modal container\n    \"Render the preview modal container (empty, content loaded via HTMX).\"",
+    "crumbs": [
+      "cjm-fasthtml-media-gallery"
+    ]
+  }
+]
